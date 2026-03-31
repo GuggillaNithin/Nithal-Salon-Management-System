@@ -1,65 +1,131 @@
-import Image from "next/image";
+"use client";
+
+import { FormEvent, useEffect, useState } from "react";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (status === "authenticated") {
+      const role = (session?.user as any)?.role;
+      if (role === "superadmin") {
+        router.replace("/superadmin");
+      } else {
+        router.replace("/dashboard");
+      }
+    }
+  }, [router, status, session]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setIsSubmitting(true);
+
+    const result = await signIn("credentials", {
+      email,
+      password,
+      redirect: false,
+    });
+
+    setIsSubmitting(false);
+
+    if (result?.error) {
+      setError("Invalid email or password");
+      return;
+    }
+
+    // Role-based routing is handled by the useEffect once the session updates,
+    // but just to be safe, we refresh so the next-auth provider fetches session.
+    router.refresh();
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <main className="min-h-screen bg-stone-950 px-6 py-12 text-stone-50">
+      <div className="mx-auto grid min-h-[calc(100vh-6rem)] max-w-5xl gap-10 rounded-[2rem] border border-white/10 bg-[radial-gradient(circle_at_top,#3f3f46_0%,#18181b_35%,#09090b_100%)] p-8 shadow-2xl lg:grid-cols-[1.1fr_0.9fr] lg:p-12">
+        <section className="flex flex-col justify-between gap-10">
+          <div className="space-y-5">
+            <p className="text-sm uppercase tracking-[0.35em] text-amber-300">
+              Salon SaaS
+            </p>
+            <h1 className="max-w-xl text-5xl font-semibold leading-tight">
+              Keep bookings, customers, and staff in one place.
+            </h1>
+            <p className="max-w-lg text-base leading-7 text-stone-300">
+              Sign in with the seeded admin account to manage your salon tenant,
+              create services, and book appointments from the dashboard.
+            </p>
+          </div>
+
+          <div className="grid gap-4 text-sm text-stone-300 sm:grid-cols-3">
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              Customer records that stay scoped to the signed-in tenant.
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              Service and appointment APIs protected by the session.
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+              Role-aware user management for admins.
+            </div>
+          </div>
+        </section>
+
+        <section className="flex items-center">
+          <form
+            onSubmit={handleSubmit}
+            className="w-full rounded-[1.75rem] border border-white/10 bg-black/30 p-6 backdrop-blur"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+            <div className="mb-6 space-y-2">
+              <h2 className="text-2xl font-semibold">Sign In</h2>
+              <p className="text-sm text-stone-300">
+                Default seed credentials are prefilled for local development.
+              </p>
+            </div>
+
+            <label className="mb-4 block text-sm">
+              <span className="mb-2 block text-stone-300">Email</span>
+              <input
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none transition focus:border-amber-300"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                required
+              />
+            </label>
+
+            <label className="mb-4 block text-sm">
+              <span className="mb-2 block text-stone-300">Password</span>
+              <input
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 outline-none transition focus:border-amber-300"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+              />
+            </label>
+
+            {error ? (
+              <p className="mb-4 rounded-xl border border-red-400/30 bg-red-400/10 px-4 py-3 text-sm text-red-200">
+                {error}
+              </p>
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full rounded-xl bg-amber-300 px-4 py-3 font-medium text-stone-950 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isSubmitting ? "Signing in..." : "Open Dashboard"}
+            </button>
+          </form>
+        </section>
+      </div>
+    </main>
   );
 }

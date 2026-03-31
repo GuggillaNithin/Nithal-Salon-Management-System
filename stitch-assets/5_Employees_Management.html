@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Employees | The Atelier</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary-fixed": "#ffdea6",
+              "outline-variant": "#d1c2d2",
+              "inverse-primary": "#ebb2ff",
+              "primary-container": "#610b83",
+              "surface-container-low": "#f3f4f5",
+              "secondary-fixed-dim": "#e1b9ec",
+              "surface-container-lowest": "#ffffff",
+              "on-tertiary-container": "#c4a061",
+              "surface-bright": "#f8f9fa",
+              "secondary-container": "#f2cafd",
+              "on-background": "#191c1d",
+              "primary-fixed-dim": "#ebb2ff",
+              "tertiary-container": "#4f3700",
+              "secondary-fixed": "#f8d8ff",
+              "surface-container-highest": "#e1e3e4",
+              "secondary": "#73527e",
+              "on-secondary-fixed-variant": "#5a3b65",
+              "surface-dim": "#d9dadb",
+              "primary-fixed": "#f8d8ff",
+              "on-error": "#ffffff",
+              "inverse-surface": "#2e3132",
+              "on-primary-fixed-variant": "#6e1e8f",
+              "error": "#ba1a1a",
+              "surface-tint": "#883ba9",
+              "tertiary": "#342300",
+              "on-error-container": "#93000a",
+              "on-tertiary-fixed": "#271900",
+              "error-container": "#ffdad6",
+              "on-primary-fixed": "#320047",
+              "on-secondary": "#ffffff",
+              "on-primary-container": "#d785f8",
+              "surface": "#f8f9fa",
+              "on-secondary-fixed": "#2b0f37",
+              "on-secondary-container": "#72517d",
+              "surface-container-high": "#e7e8e9",
+              "surface-container": "#edeeef",
+              "on-surface": "#191c1d",
+              "outline": "#807381",
+              "on-primary": "#ffffff",
+              "on-surface-variant": "#4e4350",
+              "tertiary-fixed-dim": "#e7c17e",
+              "background": "#f8f9fa",
+              "on-tertiary": "#ffffff",
+              "on-tertiary-fixed-variant": "#5c420a",
+              "inverse-on-surface": "#f0f1f2",
+              "surface-variant": "#e1e3e4",
+              "primary": "#42005c"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f8f9fa;
+      }
+      .glass-card {
+        background: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(12px);
+      }
+      .custom-shadow {
+        box-shadow: 0 20px 40px -10px rgba(97, 11, 131, 0.08);
+      }
+    </style>
+</head>
+<body class="text-on-surface">
+<!-- SideNavBar (Shared Component) -->
+<aside class="fixed left-0 top-0 h-full w-64 bg-white flex flex-col py-6 px-4 shadow-xl z-50 border-r border-slate-100">
+<div class="mb-10 px-2">
+<h1 class="text-2xl font-bold tracking-tight text-primary font-headline">The Atelier</h1>
+<p class="text-on-surface-variant text-xs font-label">Premium Management</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-primary px-4 py-3 transition-colors hover:bg-surface-container-low rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="text-sm font-medium">Customer</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-primary px-4 py-3 transition-colors hover:bg-surface-container-low rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="content_cut">content_cut</span>
+<span class="text-sm font-medium">Services</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-primary px-4 py-3 transition-colors hover:bg-surface-container-low rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="point_of_sale">point_of_sale</span>
+<span class="text-sm font-medium">Point of Sale</span>
+</a>
+<a class="flex items-center gap-3 bg-[#610b83] text-white rounded-lg px-4 py-3 border-l-4 border-[#42005c] transition-transform active:scale-95 shadow-md" href="#">
+<span class="material-symbols-outlined" data-icon="badge">badge</span>
+<span class="text-sm font-medium">Employees</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-primary px-4 py-3 transition-colors hover:bg-surface-container-low rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="assessment">assessment</span>
+<span class="text-sm font-medium">Reports</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-slate-100 space-y-1">
+<button class="w-full mb-4 bg-[#610b83] text-white font-headline font-bold py-3 rounded-xl transition-transform active:scale-90 shadow-lg shadow-primary-container/20">
+                New Appointment
+            </button>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-primary px-4 py-3 transition-colors hover:bg-surface-container-low rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-primary px-4 py-3 transition-colors hover:bg-surface-container-low rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="text-sm font-medium">Support</span>
+</a>
+</div>
+</aside>
+<!-- TopNavBar (Shared Component) -->
+<header class="sticky top-0 right-0 w-full z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 flex justify-between items-center px-8 py-3 ml-64 max-w-[calc(100%-16rem)]">
+<div class="flex items-center bg-surface-container-low px-4 py-2 rounded-full w-96">
+<span class="material-symbols-outlined text-outline mr-2 text-xl" data-icon="search">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-sm w-full font-body" placeholder="Search employees..." type="text"/>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-slate-500 cursor-pointer hover:text-[#610b83] transition-colors" data-icon="notifications">notifications</span>
+<span class="material-symbols-outlined text-slate-500 cursor-pointer hover:text-[#610b83] transition-colors" data-icon="dark_mode">dark_mode</span>
+</div>
+<div class="h-8 w-px bg-slate-200"></div>
+<div class="flex items-center gap-3">
+<div class="text-right">
+<p class="text-xs font-bold font-headline text-on-surface">Alex Thompson</p>
+<p class="text-[10px] text-on-surface-variant font-label uppercase tracking-wider">Manager</p>
+</div>
+<img alt="User Profile Avatar" class="w-10 h-10 rounded-full border-2 border-primary-fixed shadow-sm" data-alt="Close-up portrait of a professional man in a minimalist office setting with soft natural light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC2vUax_q6JArRycIGUw6f8_I_FfYMgC8xRVBvagyAA6PWwd1qmejshvZdVoCSvTjf_rQS7SJFrKDqj_CAbGbOqgHrgUSw3hQ3Jw7OpiHhX2SYGgAuiYaEemlL7A3GWF4JS1lUAyaP9zCeOcTULG_2C44OB6XCtq3v8EvoVN1kgvpx329XXI3S8tdy7KVZBtEUZ9N6Zaya4CGyhOfIjQenLSErF959ppcYbByjoTKFw7yEOX5XhoFHv-WtEtisGOPkrctCmt5igGKQ"/>
+</div>
+</div>
+</header>
+<!-- Main Content -->
+<main class="ml-64 p-10 min-h-screen">
+<div class="max-w-6xl mx-auto">
+<!-- Page Header -->
+<div class="mb-10">
+<h2 class="text-4xl font-extrabold font-headline text-primary tracking-tight mb-2">Artisan Directory</h2>
+<p class="text-on-surface-variant font-body">Manage your salon's creative talent and operational staff.</p>
+</div>
+<!-- Top Section: Add Employee Form -->
+<section class="mb-12">
+<div class="bg-surface-container-lowest rounded-2xl p-8 custom-shadow border border-outline-variant/10">
+<div class="flex items-center gap-3 mb-8">
+<div class="p-2 bg-secondary-container rounded-lg">
+<span class="material-symbols-outlined text-primary" data-icon="person_add">person_add</span>
+</div>
+<h3 class="text-xl font-bold font-headline text-on-surface">Onboard New Artisan</h3>
+</div>
+<form class="grid grid-cols-1 md:grid-cols-3 gap-8 items-end">
+<div class="space-y-2">
+<label class="block text-xs font-bold font-label text-on-surface-variant uppercase tracking-widest ml-1">Employee Name</label>
+<input class="w-full bg-transparent border-b-2 border-outline-variant/20 focus:border-primary focus:ring-0 transition-all py-3 px-1 font-body text-on-surface placeholder:text-outline-variant" placeholder="e.g. Julianna Vesta" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="block text-xs font-bold font-label text-on-surface-variant uppercase tracking-widest ml-1">Gender</label>
+<select class="w-full bg-transparent border-b-2 border-outline-variant/20 focus:border-primary focus:ring-0 transition-all py-3 px-1 font-body text-on-surface appearance-none">
+<option disabled="" selected="" value="">Select Gender</option>
+<option value="female">Female</option>
+<option value="male">Male</option>
+<option value="non-binary">Non-binary</option>
+<option value="prefer-not-to-say">Prefer not to say</option>
+</select>
+</div>
+<button class="bg-gradient-to-br from-primary to-primary-container text-white font-headline font-bold py-4 rounded-xl shadow-lg hover:shadow-primary-container/20 transition-all active:scale-[0.98]">
+                            Add Employee
+                        </button>
+</form>
+</div>
+</section>
+<!-- Employees Grid -->
+<section>
+<div class="flex justify-between items-center mb-8">
+<h3 class="text-lg font-bold font-headline text-on-surface">Current Team <span class="ml-2 px-2 py-0.5 bg-surface-container-high rounded text-sm text-on-surface-variant">12 Members</span></h3>
+<div class="flex gap-2">
+<button class="p-2 rounded-lg bg-surface-container-high text-on-surface-variant hover:bg-primary-fixed-dim hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="grid_view">grid_view</span>
+</button>
+<button class="p-2 rounded-lg text-outline hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined" data-icon="list">list</span>
+</button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+<!-- Employee Card 1 -->
+<div class="group bg-surface-container-lowest p-6 rounded-2xl custom-shadow border border-outline-variant/10 hover:border-primary-fixed transition-all hover:-translate-y-1">
+<div class="flex justify-between items-start mb-6">
+<div class="relative">
+<img alt="Employee Avatar" class="w-16 h-16 rounded-2xl object-cover ring-4 ring-surface-container-low" data-alt="Professional portrait of a woman with curly hair smiling in a brightly lit studio with soft beige background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCtDMOIltYw7XgoTXSsxdu4sahdCI_BgwPUOzBe2cKHzMpEWHk-HIbRHK-VbEwPCNNU7r3kDDFXPSYBYcClJoKuzdv6huedlSXBUZhxgAqtb3RNXgSG2AAxgsJy3N92eciBCGe7dy-ZGQfGS_VBVIoetzru48yb66MPFC1oKjOUGW9QNNbuexl7xUm-FUXz2RtOLiHiIYA0Rs-UQcoYstdISdv9s7-w2j70frDBEWgG3BYINJfz-Tg_vn1u7qGXWnwEeeVe43xFaSw"/>
+<div class="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full"></div>
+</div>
+<div class="px-3 py-1 bg-secondary-container rounded-full text-[10px] font-bold text-on-secondary-container uppercase tracking-tighter">
+                                Senior Stylist
+                            </div>
+</div>
+<div class="mb-6">
+<h4 class="text-xl font-bold font-headline text-on-surface mb-1">Julianna Vesta</h4>
+<div class="flex items-center gap-3">
+<span class="px-2 py-0.5 bg-surface-container-high text-on-surface-variant text-[10px] font-bold rounded uppercase tracking-wider">Female</span>
+<span class="w-1 h-1 bg-outline-variant rounded-full"></span>
+<span class="text-emerald-600 text-xs font-bold font-label">Active</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-outline-variant/10">
+<button class="text-xs font-bold font-label text-primary hover:underline">View Portfolio</button>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors" data-icon="more_horiz">more_horiz</span>
+</div>
+</div>
+<!-- Employee Card 2 -->
+<div class="group bg-surface-container-lowest p-6 rounded-2xl custom-shadow border border-outline-variant/10 hover:border-primary-fixed transition-all hover:-translate-y-1">
+<div class="flex justify-between items-start mb-6">
+<div class="relative">
+<img alt="Employee Avatar" class="w-16 h-16 rounded-2xl object-cover ring-4 ring-surface-container-low" data-alt="Close up of a friendly-looking man with a neat beard in a professional work environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRA4dYu0jnYla_I8KXq1fxAbPJhwhiDT0OM-35hhervaE5e7D6QXZ8E9r2bL4psdHp-q9KQTi1oOFM2Je12iMIuo29hRpki-sy7XZqMj3sVfn6EI3vZFaTkZoc9zWK7Qb64NEbZuLCj4o-uS7h_kzNy-dXDZcxQiYEDX3wAb5hiHoG99Aj3Hdtv9TH-mwZydSL93_wa4lSRZdm2w_BqOqYuJMu-UkevT5Z6zftO6fxuayHC-_MfVegxA7pDhHOxUf1ComeAJ-uKB8"/>
+<div class="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full"></div>
+</div>
+<div class="px-3 py-1 bg-secondary-container rounded-full text-[10px] font-bold text-on-secondary-container uppercase tracking-tighter">
+                                Barber
+                            </div>
+</div>
+<div class="mb-6">
+<h4 class="text-xl font-bold font-headline text-on-surface mb-1">Marcus Chen</h4>
+<div class="flex items-center gap-3">
+<span class="px-2 py-0.5 bg-surface-container-high text-on-surface-variant text-[10px] font-bold rounded uppercase tracking-wider">Male</span>
+<span class="w-1 h-1 bg-outline-variant rounded-full"></span>
+<span class="text-emerald-600 text-xs font-bold font-label">Active</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-outline-variant/10">
+<button class="text-xs font-bold font-label text-primary hover:underline">View Portfolio</button>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors" data-icon="more_horiz">more_horiz</span>
+</div>
+</div>
+<!-- Employee Card 3 -->
+<div class="group bg-surface-container-lowest p-6 rounded-2xl custom-shadow border border-outline-variant/10 hover:border-primary-fixed transition-all hover:-translate-y-1">
+<div class="flex justify-between items-start mb-6">
+<div class="relative">
+<img alt="Employee Avatar" class="w-16 h-16 rounded-2xl object-cover ring-4 ring-surface-container-low" data-alt="Artistic portrait of a fashionable young woman with a creative hairstyle in a modern studio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-4u9hEKT_F637OLpuns_GU4qh-KApITaxk6YkI9FBMDMwjUV9OIxkuSm8pHgWgh52MbIDq_lLWXP-ityn5wnk3Fo47xzUhze830l6eWFYD2xewCjuk3Ta7k7oeA6qzEDNZxSLF_JhdFBsPqWydob-qLERWytdXGh3JLECLNhWGpybpTuLxNQ5XMhpYROXMCJfOHgLe-3Jz-TZ82ttiFAgqaCiy9IGgbTJqZ7A_EyIvRgj7Mte-nInKGU5T7U5rJPXHl6hPA0jbW4"/>
+<div class="absolute -bottom-1 -right-1 w-5 h-5 bg-outline-variant border-4 border-white rounded-full"></div>
+</div>
+<div class="px-3 py-1 bg-secondary-container rounded-full text-[10px] font-bold text-on-secondary-container uppercase tracking-tighter">
+                                Colorist
+                            </div>
+</div>
+<div class="mb-6">
+<h4 class="text-xl font-bold font-headline text-on-surface mb-1">Sasha Grey</h4>
+<div class="flex items-center gap-3">
+<span class="px-2 py-0.5 bg-surface-container-high text-on-surface-variant text-[10px] font-bold rounded uppercase tracking-wider">Non-binary</span>
+<span class="w-1 h-1 bg-outline-variant rounded-full"></span>
+<span class="text-on-surface-variant text-xs font-bold font-label">Inactive</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-outline-variant/10">
+<button class="text-xs font-bold font-label text-primary hover:underline">View Portfolio</button>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors" data-icon="more_horiz">more_horiz</span>
+</div>
+</div>
+<!-- Employee Card 4 -->
+<div class="group bg-surface-container-lowest p-6 rounded-2xl custom-shadow border border-outline-variant/10 hover:border-primary-fixed transition-all hover:-translate-y-1">
+<div class="flex justify-between items-start mb-6">
+<div class="relative">
+<img alt="Employee Avatar" class="w-16 h-16 rounded-2xl object-cover ring-4 ring-surface-container-low" data-alt="Confident woman with short hair and modern glasses looking at the camera in a clean bright environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAQcWnQZ0pohYT2fnA1Zis1kou_8kI_HUFE440q9IlazldZ_reaCdaLSEGxM197yKdLEV4hNYpJcdbZm6SO5XB-mzUpQOBu5xUVQOET_vyTzRycfn_HjxlJzKJW-yBvrE0jUVsMLT_71AwtwuK2GRhtnfpWitilYYTiRadScsusLaj_QoqgK8EiBcZn4EnhcM4gCt1YryqTwXFZvTmYAHOFaau7YDZ8IK5MtcSIO_dI00YYLBc8lh7JULYX13AbyMaZxCOq6Pw_hXQ"/>
+<div class="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full"></div>
+</div>
+<div class="px-3 py-1 bg-secondary-container rounded-full text-[10px] font-bold text-on-secondary-container uppercase tracking-tighter">
+                                Esthetician
+                            </div>
+</div>
+<div class="mb-6">
+<h4 class="text-xl font-bold font-headline text-on-surface mb-1">Amara Okafor</h4>
+<div class="flex items-center gap-3">
+<span class="px-2 py-0.5 bg-surface-container-high text-on-surface-variant text-[10px] font-bold rounded uppercase tracking-wider">Female</span>
+<span class="w-1 h-1 bg-outline-variant rounded-full"></span>
+<span class="text-emerald-600 text-xs font-bold font-label">Active</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-outline-variant/10">
+<button class="text-xs font-bold font-label text-primary hover:underline">View Portfolio</button>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors" data-icon="more_horiz">more_horiz</span>
+</div>
+</div>
+<!-- Employee Card 5 -->
+<div class="group bg-surface-container-lowest p-6 rounded-2xl custom-shadow border border-outline-variant/10 hover:border-primary-fixed transition-all hover:-translate-y-1">
+<div class="flex justify-between items-start mb-6">
+<div class="relative">
+<div class="w-16 h-16 rounded-2xl bg-primary-fixed flex items-center justify-center ring-4 ring-surface-container-low">
+<span class="material-symbols-outlined text-primary text-3xl" data-icon="person">person</span>
+</div>
+<div class="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 border-4 border-white rounded-full"></div>
+</div>
+<div class="px-3 py-1 bg-secondary-container rounded-full text-[10px] font-bold text-on-secondary-container uppercase tracking-tighter">
+                                Receptionist
+                            </div>
+</div>
+<div class="mb-6">
+<h4 class="text-xl font-bold font-headline text-on-surface mb-1">Leo Banks</h4>
+<div class="flex items-center gap-3">
+<span class="px-2 py-0.5 bg-surface-container-high text-on-surface-variant text-[10px] font-bold rounded uppercase tracking-wider">Male</span>
+<span class="w-1 h-1 bg-outline-variant rounded-full"></span>
+<span class="text-emerald-600 text-xs font-bold font-label">Active</span>
+</div>
+</div>
+<div class="flex items-center justify-between pt-4 border-t border-outline-variant/10">
+<button class="text-xs font-bold font-label text-primary hover:underline">View Portfolio</button>
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors" data-icon="more_horiz">more_horiz</span>
+</div>
+</div>
+<!-- Add Placeholder Card -->
+<div class="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed border-outline-variant/30 hover:border-primary-fixed-dim transition-all cursor-pointer group bg-surface-container-low/30">
+<div class="w-12 h-12 rounded-full bg-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-primary" data-icon="add">add</span>
+</div>
+<p class="text-sm font-bold font-headline text-on-surface-variant">Add more artists</p>
+</div>
+</div>
+</section>
+</div>
+</main>
+</body></html>

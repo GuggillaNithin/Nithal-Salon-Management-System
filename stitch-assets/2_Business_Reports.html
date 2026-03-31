@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Reports Dashboard | The Atelier</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "tertiary-fixed": "#ffdea6",
+              "outline-variant": "#d1c2d2",
+              "inverse-primary": "#ebb2ff",
+              "primary-container": "#610b83",
+              "surface-container-low": "#f3f4f5",
+              "secondary-fixed-dim": "#e1b9ec",
+              "surface-container-lowest": "#ffffff",
+              "on-tertiary-container": "#c4a061",
+              "surface-bright": "#f8f9fa",
+              "secondary-container": "#f2cafd",
+              "on-background": "#191c1d",
+              "primary-fixed-dim": "#ebb2ff",
+              "tertiary-container": "#4f3700",
+              "secondary-fixed": "#f8d8ff",
+              "surface-container-highest": "#e1e3e4",
+              "secondary": "#73527e",
+              "on-secondary-fixed-variant": "#5a3b65",
+              "surface-dim": "#d9dadb",
+              "primary-fixed": "#f8d8ff",
+              "on-error": "#ffffff",
+              "inverse-surface": "#2e3132",
+              "on-primary-fixed-variant": "#6e1e8f",
+              "error": "#ba1a1a",
+              "surface-tint": "#883ba9",
+              "tertiary": "#342300",
+              "on-error-container": "#93000a",
+              "on-tertiary-fixed": "#271900",
+              "error-container": "#ffdad6",
+              "on-primary-fixed": "#320047",
+              "on-secondary": "#ffffff",
+              "on-primary-container": "#d785f8",
+              "surface": "#f8f9fa",
+              "on-secondary-fixed": "#2b0f37",
+              "on-secondary-container": "#72517d",
+              "surface-container-high": "#e7e8e9",
+              "surface-container": "#edeeef",
+              "on-surface": "#191c1d",
+              "outline": "#807381",
+              "on-primary": "#ffffff",
+              "on-surface-variant": "#4e4350",
+              "tertiary-fixed-dim": "#e7c17e",
+              "background": "#f8f9fa",
+              "on-tertiary": "#ffffff",
+              "on-tertiary-fixed-variant": "#5c420a",
+              "inverse-on-surface": "#f0f1f2",
+              "surface-variant": "#e1e3e4",
+              "primary": "#42005c"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface">
+<!-- SideNavBar Component -->
+<aside class="fixed left-0 top-0 h-full w-64 bg-white flex flex-col py-6 px-4 border-r border-slate-100 z-50">
+<div class="mb-10 px-4">
+<h1 class="text-2xl font-bold tracking-tight text-primary font-headline">The Atelier</h1>
+<p class="text-on-surface-variant/60 text-xs font-medium uppercase tracking-widest mt-1">Premium Management</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-primary px-4 py-3 transition-colors hover:bg-surface-container-low rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="text-sm font-medium">Customer</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-primary px-4 py-3 transition-colors hover:bg-surface-container-low rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="content_cut">content_cut</span>
+<span class="text-sm font-medium">Services</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-primary px-4 py-3 transition-colors hover:bg-surface-container-low rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="point_of_sale">point_of_sale</span>
+<span class="text-sm font-medium">Point of Sale</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-primary px-4 py-3 transition-colors hover:bg-surface-container-low rounded-lg group" href="#">
+<span class="material-symbols-outlined" data-icon="badge">badge</span>
+<span class="text-sm font-medium">Employees</span>
+</a>
+<!-- Active Tab: Reports -->
+<a class="flex items-center gap-3 bg-[#610b83] text-white rounded-lg px-4 py-3 transition-transform scale-95 active:scale-90 shadow-lg shadow-primary-container/20" href="#">
+<span class="material-symbols-outlined" data-icon="assessment" style="font-variation-settings: 'FILL' 1;">assessment</span>
+<span class="text-sm font-medium">Reports</span>
+</a>
+</nav>
+<div class="mt-auto pt-6 border-t border-slate-100 space-y-1">
+<button class="w-full mb-4 bg-primary-container text-white font-bold py-3 px-4 rounded-xl text-sm transition-transform active:scale-95 shadow-md shadow-primary-container/10">
+            New Appointment
+        </button>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-primary px-4 py-3 transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant hover:text-primary px-4 py-3 transition-colors rounded-lg" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="text-sm font-medium">Support</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<main class="ml-64 min-h-screen bg-surface">
+<!-- TopNavBar Component -->
+<header class="sticky top-0 right-0 w-full z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 flex justify-between items-center px-8 py-3">
+<div class="flex items-center gap-4 w-1/3">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary-container transition-all" placeholder="Search analytics..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4 text-slate-500">
+<button class="hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="hover:text-primary transition-colors">
+<span class="material-symbols-outlined" data-icon="dark_mode">dark_mode</span>
+</button>
+</div>
+<div class="h-8 w-[1px] bg-slate-200"></div>
+<div class="flex items-center gap-3">
+<div class="text-right">
+<p class="text-xs font-bold text-on-surface leading-tight">Elena Rossi</p>
+<p class="text-[10px] text-on-surface-variant">Owner</p>
+</div>
+<img alt="User Profile Avatar" class="h-10 w-10 rounded-full border-2 border-primary-container/20 object-cover" data-alt="professional portrait of a salon owner with a friendly expression and stylish hair in a bright studio" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQk_xRzXD8HnL_dFh56spdF3mS7cH9oc11MiEkx01wRtZZIdNkuYglLzIdM_SWaoDuHj0AX8kqI8N6bk5ewn6NxFabodVI6HD3iz8NrnPcsKmsbsrudekZVMQ1YdXv8cfknRep-L0eNM5AMls-lrFEgGGLUbUBHhisgCyurbkeQV3FqGnsrHxh-skvREjf95zigs0rz-3w88Z1z2LhhiLlmcxF6SqnwxjHDmSL5_qwhVAm_xHKd5IAMCjSKoWWPF41ldThf--2dkU"/>
+</div>
+</div>
+</header>
+<!-- Dashboard Canvas -->
+<div class="p-8 max-w-7xl mx-auto space-y-8">
+<!-- Editorial Header -->
+<section class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+<div>
+<span class="text-xs font-bold tracking-[0.2em] text-primary-container uppercase">Performance Insights</span>
+<h2 class="text-4xl font-extrabold text-primary mt-2 font-headline">The Atelier Review</h2>
+</div>
+<!-- Time Range Filter -->
+<div class="bg-surface-container-high p-1 rounded-xl flex gap-1">
+<button class="px-5 py-2 text-xs font-semibold rounded-lg transition-all text-on-surface-variant hover:text-primary">7 Days</button>
+<button class="px-5 py-2 text-xs font-semibold rounded-lg transition-all text-on-surface-variant hover:text-primary">15 Days</button>
+<button class="px-5 py-2 text-xs font-bold rounded-lg transition-all bg-surface-container-lowest text-primary shadow-sm">30 Days</button>
+<button class="px-5 py-2 text-xs font-semibold rounded-lg transition-all text-on-surface-variant hover:text-primary">90 Days</button>
+</div>
+</section>
+<!-- Stats Grid -->
+<section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<!-- Revenue Card -->
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/10 group hover:border-primary-container/30 transition-all duration-300">
+<div class="flex justify-between items-start mb-4">
+<div class="p-3 rounded-lg bg-primary-container/5 text-primary-container">
+<span class="material-symbols-outlined" data-icon="payments">payments</span>
+</div>
+<span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">+12.4%</span>
+</div>
+<p class="text-xs font-medium text-on-surface-variant mb-1">Total Revenue</p>
+<h3 class="text-2xl font-bold text-on-surface font-headline tracking-tight">$42,850.00</h3>
+</div>
+<!-- Bills Card -->
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/10 group hover:border-primary-container/30 transition-all duration-300">
+<div class="flex justify-between items-start mb-4">
+<div class="p-3 rounded-lg bg-secondary-container/20 text-secondary">
+<span class="material-symbols-outlined" data-icon="receipt_long">receipt_long</span>
+</div>
+<span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">+4.2%</span>
+</div>
+<p class="text-xs font-medium text-on-surface-variant mb-1">Total Bills</p>
+<h3 class="text-2xl font-bold text-on-surface font-headline tracking-tight">1,284</h3>
+</div>
+<!-- Services Card -->
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/10 group hover:border-primary-container/30 transition-all duration-300">
+<div class="flex justify-between items-start mb-4">
+<div class="p-3 rounded-lg bg-tertiary-fixed/30 text-tertiary">
+<span class="material-symbols-outlined" data-icon="content_cut">content_cut</span>
+</div>
+<span class="text-[10px] font-bold text-on-surface-variant bg-surface-container px-2 py-1 rounded-full">Stable</span>
+</div>
+<p class="text-xs font-medium text-on-surface-variant mb-1">Active Services</p>
+<h3 class="text-2xl font-bold text-on-surface font-headline tracking-tight">48</h3>
+</div>
+<!-- Customers Card -->
+<div class="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/10 group hover:border-primary-container/30 transition-all duration-300">
+<div class="flex justify-between items-start mb-4">
+<div class="p-3 rounded-lg bg-primary-fixed/30 text-primary">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+</div>
+<span class="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">+8.1%</span>
+</div>
+<p class="text-xs font-medium text-on-surface-variant mb-1">Total Customers</p>
+<h3 class="text-2xl font-bold text-on-surface font-headline tracking-tight">856</h3>
+</div>
+</section>
+<!-- Charts & Visualization Area -->
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Revenue Trend Chart (Line) -->
+<div class="lg:col-span-2 bg-surface-container-lowest p-8 rounded-xl border border-outline-variant/10">
+<div class="flex justify-between items-center mb-8">
+<div>
+<h4 class="text-lg font-bold text-on-surface font-headline">Revenue Growth</h4>
+<p class="text-xs text-on-surface-variant">Weekly performance tracking</p>
+</div>
+<button class="text-primary text-xs font-bold hover:underline">Download CSV</button>
+</div>
+<!-- Visual Placeholder for Line Chart -->
+<div class="relative h-[300px] w-full mt-4 flex items-end justify-between px-2">
+<!-- Simulated Chart Grid Lines -->
+<div class="absolute inset-0 flex flex-col justify-between">
+<div class="border-b border-outline-variant/10 w-full h-0"></div>
+<div class="border-b border-outline-variant/10 w-full h-0"></div>
+<div class="border-b border-outline-variant/10 w-full h-0"></div>
+<div class="border-b border-outline-variant/10 w-full h-0"></div>
+<div class="border-b border-outline-variant/10 w-full h-0"></div>
+</div>
+<!-- Simulated Data Path (using SVG) -->
+<svg class="absolute inset-0 h-full w-full" preserveaspectratio="none">
+<path d="M0 250 L100 220 L200 240 L300 150 L400 180 L500 80 L600 120 L700 40" fill="none" stroke="url(#gradient-primary)" stroke-linecap="round" stroke-linejoin="round" stroke-width="4"></path>
+<defs>
+<lineargradient id="gradient-primary" x1="0%" x2="100%" y1="0%" y2="0%">
+<stop offset="0%" style="stop-color:#42005c;stop-opacity:1"></stop>
+<stop offset="100%" style="stop-color:#610b83;stop-opacity:1"></stop>
+</lineargradient>
+</defs>
+</svg>
+<!-- X-Axis Labels -->
+<div class="absolute -bottom-6 w-full flex justify-between text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">
+<span>Week 1</span>
+<span>Week 2</span>
+<span>Week 3</span>
+<span>Week 4</span>
+</div>
+</div>
+</div>
+<!-- Payment Breakdown (Donut) -->
+<div class="bg-surface-container-lowest p-8 rounded-xl border border-outline-variant/10">
+<h4 class="text-lg font-bold text-on-surface font-headline mb-1">Payment Mix</h4>
+<p class="text-xs text-on-surface-variant mb-8">Transaction method distribution</p>
+<div class="relative flex justify-center items-center h-[200px]">
+<!-- Circular Donut Graphic -->
+<div class="w-40 h-40 rounded-full border-[18px] border-primary-container" style="clip-path: polygon(50% 50%, 50% 0, 100% 0, 100% 100%, 0 100%, 0 50%);"></div>
+<div class="absolute w-40 h-40 rounded-full border-[18px] border-secondary-container" style="clip-path: polygon(50% 50%, 0 50%, 0 0, 50% 0);"></div>
+<div class="absolute flex flex-col items-center">
+<span class="text-2xl font-bold font-headline">$14k</span>
+<span class="text-[10px] uppercase font-bold text-on-surface-variant">Top: Card</span>
+</div>
+</div>
+<div class="mt-8 space-y-3">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-primary-container"></span>
+<span class="text-xs font-medium text-on-surface">Card</span>
+</div>
+<span class="text-xs font-bold text-on-surface">54%</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-secondary-container"></span>
+<span class="text-xs font-medium text-on-surface">Cash</span>
+</div>
+<span class="text-xs font-bold text-on-surface">22%</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-tertiary-fixed"></span>
+<span class="text-xs font-medium text-on-surface">PhonePe</span>
+</div>
+<span class="text-xs font-bold text-on-surface">14%</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="w-3 h-3 rounded-full bg-surface-variant"></span>
+<span class="text-xs font-medium text-on-surface">Google Pay</span>
+</div>
+<span class="text-xs font-bold text-on-surface">10%</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Bottom Data Grid: Top Services & Employees -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-8 pb-12">
+<!-- Top Services Table -->
+<div class="bg-surface-container-low p-8 rounded-xl">
+<h4 class="text-lg font-bold text-primary font-headline mb-6">In-Demand Services</h4>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-lg overflow-hidden">
+<img alt="Service thumbnail" class="w-full h-full object-cover" data-alt="close-up of stylist cutting hair with professional shears in a high-end salon" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCTMG4W9hF0_DaMh1vuIPO4GBnHDtXg3ouKVeSOT0ncUnT1MuTc5spT7cYOHv3zGb73JhBhj-AFea7-qbQwPJESspQg8U6tX6cHfOg5xY4a9yQZFm7FDq_U0i_9rXgEg7lbpiVchqF8c3i2Z4-699Eb0BPMJM80TFEI6Wj7kWPtt-w7y1P-fhuRNZQ-D347BE5hsI1w8nSxHeZgBLSyQK_bCb48moeVF3XRaunYNEfI9pr0m939lOSK92jLIf6QaZI2njJPHt2c5Eg"/>
+</div>
+<div>
+<p class="text-sm font-bold text-on-surface">Balayage Custom</p>
+<p class="text-[10px] text-on-surface-variant">32 bookings this month</p>
+</div>
+</div>
+<p class="text-sm font-bold text-primary">$4,800</p>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-lg overflow-hidden">
+<img alt="Service thumbnail" class="w-full h-full object-cover" data-alt="vibrant hair color application process in a modern luxury salon environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPw3NmOakZUKDTzdl9ag4V4wA6V6emEzkzci9wZQd3DDxZKmWyMzCrp49djGO7VGiRwsVyDySq4P8ITEMop3uV5nXm2PJINviOg9rBVzAIK5P0Dywe2bEIr1TOeur_OYI9iHZIKh3HUAlmfHcF8iT4uk6-lWpc7_PK2QZvexLpnXaxYHgmyUY4pzhRQiBvibG9rQ-R8TNCZBvk0A_JmZH_bl8iO_E-W6ZjZo0m8WmMfWd6EMERd-b9cvS3HogoS1JHEQZlcr1dL-c"/>
+</div>
+<div>
+<p class="text-sm font-bold text-on-surface">Olaplex Treatment</p>
+<p class="text-[10px] text-on-surface-variant">28 bookings this month</p>
+</div>
+</div>
+<p class="text-sm font-bold text-primary">$2,100</p>
+</div>
+<div class="flex items-center justify-between p-4 bg-surface-container-lowest rounded-xl">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-lg overflow-hidden">
+<img alt="Service thumbnail" class="w-full h-full object-cover" data-alt="manicured hands with elegant nail art on a soft neutral background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDJefOU40uR3TWuSG2c0hZKScu13ihe7GghvDWEwggzORXx4zRrujSezPaZ8lS0JQB2lLn_UieXU_x7W6itHaZ2RvPau5bvhd8JhbyzqfQQvgyfOqNBUSxpcgx6lUDRmf-e3ajJ3Szyi7zNT-RqMCvZZWKIe-5r1RzzG8Fmr0A3cLdsASPAagVmacifFbUNgccz9Uyh6pDbGaTlujefIj8eFNdP5JrlZsEXfpyRkPzqWRp19GMT-zgsBco4_b8Ri8Ps-LSGKfgJCwc"/>
+</div>
+<div>
+<p class="text-sm font-bold text-on-surface">Silk Press Finish</p>
+<p class="text-[10px] text-on-surface-variant">24 bookings this month</p>
+</div>
+</div>
+<p class="text-sm font-bold text-primary">$1,920</p>
+</div>
+</div>
+</div>
+<!-- Recent Customers / Retention -->
+<div class="bg-surface-container-lowest p-8 rounded-xl border border-outline-variant/10">
+<h4 class="text-lg font-bold text-on-surface font-headline mb-6">Retention Performance</h4>
+<div class="space-y-6">
+<div class="relative pt-1">
+<div class="flex mb-2 items-center justify-between">
+<div>
+<span class="text-xs font-bold inline-block py-1 px-2 uppercase rounded-full text-primary bg-primary-container/10">
+                                        Return Rate
+                                    </span>
+</div>
+<div class="text-right">
+<span class="text-xs font-bold inline-block text-primary">
+                                        68%
+                                    </span>
+</div>
+</div>
+<div class="overflow-hidden h-2 mb-4 text-xs flex rounded bg-surface-container-high">
+<div class="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary-container" style="width:68%"></div>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="p-4 bg-surface-container-low rounded-xl text-center">
+<p class="text-2xl font-bold text-primary font-headline">122</p>
+<p class="text-[10px] uppercase font-bold text-on-surface-variant">New Customers</p>
+</div>
+<div class="p-4 bg-surface-container-low rounded-xl text-center">
+<p class="text-2xl font-bold text-primary font-headline">438</p>
+<p class="text-[10px] uppercase font-bold text-on-surface-variant">Regulars</p>
+</div>
+</div>
+<div class="p-6 border border-dashed border-outline-variant rounded-xl flex items-center justify-center gap-3">
+<span class="material-symbols-outlined text-primary-container" data-icon="auto_awesome">auto_awesome</span>
+<p class="text-xs font-medium text-on-surface-variant">Your retention is <span class="font-bold text-primary">12% higher</span> than industry average this month.</p>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Floating Action Button for Global Action -->
+<div class="fixed bottom-8 right-8 z-50">
+<button class="flex items-center gap-2 bg-primary-container text-on-primary-container px-6 py-4 rounded-full shadow-2xl hover:scale-105 transition-transform active:scale-90 group">
+<span class="material-symbols-outlined" data-icon="add" style="font-variation-settings: 'FILL' 1;">add</span>
+<span class="text-sm font-bold">New Appointment</span>
+</button>
+</div>
+</body></html>

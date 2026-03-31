@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+
+  users        User[]
+  customers    Customer[]
+  categories   Category[]
+  services     Service[]
+  appointments Appointment[]
+  visits       Visit[]
+  staffs       Staff[]
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      String // admin | staff
+  tenantId  String
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String
+  tenantId  String
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  tenant       Tenant        @relation(fields: [tenantId], references: [id])
+  appointments Appointment[]
+  visits       Visit[]
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String
+  tenantId  String
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  tenant   Tenant    @relation(fields: [tenantId], references: [id])
+  services Service[]
+}
+
+model Service {
+  id         String   @id @default(uuid())
+  name       String
+  price      Float
+  tenantId   String
+  categoryId String?
+  isDeleted  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  tenant        Tenant         @relation(fields: [tenantId], references: [id])
+  category      Category?      @relation(fields: [categoryId], references: [id])
+  appointments  Appointment[]
+  visitServices VisitService[]
+}
+
+model Appointment {
+  id         String   @id @default(uuid())
+  date       DateTime
+  tenantId   String
+  customerId String
+  serviceId  String
+  isDeleted  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  customer Customer @relation(fields: [customerId], references: [id])
+  service  Service  @relation(fields: [serviceId], references: [id])
+}
+
+model Visit {
+  id            String   @id @default(uuid())
+  tenantId      String
+  customerId    String
+  staffId       String?
+  totalAmount   Float
+  discountType  String?
+  discountValue Float?
+  finalAmount   Float    @default(0)
+  paymentMethod String   @default("cash")
+  isDeleted     Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  tenant   Tenant         @relation(fields: [tenantId], references: [id])
+  customer Customer       @relation(fields: [customerId], references: [id])
+  staff    Staff?         @relation(fields: [staffId], references: [id])
+  services VisitService[]
+}
+
+model VisitService {
+  id        String @id @default(uuid())
+  visitId   String
+  serviceId String
+
+  visit   Visit   @relation(fields: [visitId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+}
+
+model Staff {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  gender    String
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  visits Visit[]
+}
