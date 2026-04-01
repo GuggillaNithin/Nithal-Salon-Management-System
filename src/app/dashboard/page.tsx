@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { signOut, useSession } from "next-auth/react";
+import { useToast } from "@/components/ui/toast-provider";
 import useSWR from "swr";
-import { Menu, X, Users, Scissors, BookCheck, LogOut, Briefcase, BarChart, Search, Trash2, Edit, Calendar } from "lucide-react";
+import { Menu, X, Users, Scissors, BookCheck, LogOut, Briefcase, BarChart, Search, Trash2, Edit, Calendar, History, Clock, Loader2 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 // Types
@@ -39,6 +40,7 @@ export default function Dashboard() {
   const { data: session, status } = useSession({ required: true, onUnauthenticated() {
     window.location.href = "/";
   }});
+  const { showToast } = useToast();
   
   const [activeTab, setActiveTab] = useState<"customers" | "services" | "visits" | "staff" | "reports">("customers");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -96,6 +98,11 @@ export default function Dashboard() {
   const [finalAmount, setFinalAmount] = useState(0);
 
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState<{ [key: string]: boolean }>({});
+
+  const setLoader = (key: string, value: boolean) => {
+    setIsLoading(prev => ({ ...prev, [key]: value }));
+  };
 
   const isAdmin = (session?.user as any)?.role === "admin";
 
@@ -152,39 +159,71 @@ export default function Dashboard() {
 
   // Actions
   async function addCustomer() {
+    if (isLoading['addCustomer']) return;
     try {
+      setLoader('addCustomer', true);
       setError("");
       const res = await fetch("/api/customer", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, phone }) });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed to add customer");
       setName(""); setPhone(""); mutateCustomers(); mutateReports();
-    } catch (err: any) { setError(err.message); }
+      showToast("Success", "Customer added successfully", "success");
+    } catch (err: any) { 
+      setError(err.message); 
+      showToast("Error", err.message, "error");
+    } finally {
+      setLoader('addCustomer', false);
+    }
   }
 
   async function addCategory() {
+    if (isLoading['addCategory']) return;
     try {
+      setLoader('addCategory', true);
       setError("");
       const res = await fetch("/api/category", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newCategoryName }) });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed to add category");
       setNewCategoryName(""); mutateCategories();
-    } catch (err: any) { setError(err.message); }
+      showToast("Success", "Category created", "success");
+    } catch (err: any) { 
+      setError(err.message); 
+      showToast("Error", err.message, "error");
+    } finally {
+      setLoader('addCategory', false);
+    }
   }
 
   async function addService() {
+    if (isLoading['addService']) return;
     try {
+      setLoader('addService', true);
       setError("");
       const res = await fetch("/api/service", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: serviceName, price: Number(price), categoryId }) });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed to add service");
       setServiceName(""); setPrice(""); setCategoryId(""); mutateServices(); mutateReports();
-    } catch (err: any) { setError(err.message); }
+      showToast("Success", "Service added correctly", "success");
+    } catch (err: any) { 
+      setError(err.message); 
+      showToast("Error", err.message, "error");
+    } finally {
+      setLoader('addService', false);
+    }
   }
 
   async function addEmployee() {
+    if (isLoading['addEmployee']) return;
     try {
+      setLoader('addEmployee', true);
       setError("");
       const res = await fetch("/api/staff", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: employeeName, gender: employeeGender }) });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed to add employee");
       setEmployeeName(""); setEmployeeGender("Female"); mutateEmployees();
-    } catch (err: any) { setError(err.message); }
+      showToast("Success", "Staff member added", "success");
+    } catch (err: any) { 
+      setError(err.message); 
+      showToast("Error", err.message, "error");
+    } finally {
+      setLoader('addEmployee', false);
+    }
   }
 
   // POS Visit specific operations
@@ -228,7 +267,9 @@ export default function Dashboard() {
   }
 
   async function handleCheckoutSubmit() {
+    if (isLoading['checkout']) return;
     try {
+      setLoader('checkout', true);
       setError("");
       const payload = {
         serviceIds: selectedServices.map(s => s.id),
@@ -246,6 +287,7 @@ export default function Dashboard() {
           body: JSON.stringify(payload)
         });
         if (!res.ok) throw new Error((await res.json()).error ?? "Failed to update visit");
+        showToast("Updated", "Bill updated successfully", "success");
       } else {
         // Create mode (POST logic)
         const res = await fetch("/api/customer-visit", { 
@@ -258,22 +300,36 @@ export default function Dashboard() {
           }) 
         });
         if (!res.ok) throw new Error((await res.json()).error ?? "Failed to log visit checkout");
+        showToast("Success", "Bill processed successfully", "success");
       }
       cancelEdit();
       mutateVisits(); 
       mutateCustomers(); 
       mutateReports();
-    } catch (err: any) { setError(err.message); }
+    } catch (err: any) { 
+      setError(err.message); 
+      showToast("Error", err.message, "error");
+    } finally {
+      setLoader('checkout', false);
+    }
   }
 
   async function softDelete(id: string, endpoint: string, mutator: any) {
+    if (isLoading[`delete-${id}`]) return;
     if (!confirm("Are you sure you want to delete this?")) return;
     try {
+      setLoader(`delete-${id}`, true);
       setError("");
       const res = await fetch(`/api/${endpoint}?id=${id}`, { method: "DELETE" });
       if (!res.ok) throw new Error((await res.json()).error ?? "Failed to delete");
       mutator(); mutateReports();
-    } catch (err: any) { setError(err.message); }
+      showToast("Deleted", "Item removed successfully", "success");
+    } catch (err: any) { 
+      setError(err.message); 
+      showToast("Error", err.message, "error");
+    } finally {
+      setLoader(`delete-${id}`, false);
+    }
   }
 
   if (status === "loading") {
@@ -294,118 +350,155 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="flex h-screen bg-stone-950 text-stone-100 overflow-hidden font-sans">
+    <div className="flex h-screen bg-surface text-on-surface overflow-hidden font-body">
       {isSidebarOpen && (
         <div className="fixed inset-0 z-40 bg-black/60 md:hidden backdrop-blur-sm transition-opacity" onClick={() => setIsSidebarOpen(false)} />
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed inset-y-0 left-0 z-50 w-72 transform border-r border-white/5 bg-stone-950/95 backdrop-blur-md transition-transform duration-300 md:static md:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
-        <div className="flex h-full flex-col p-6">
-          <div className="flex items-center justify-between mb-8">
-            <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
-              <span className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-300 to-amber-500 flex items-center justify-center text-stone-950 font-black text-lg">
-                {(tenant?.name ?? "S")[0].toUpperCase()}
-              </span>
-              <span className="truncate max-w-[150px]">{tenant?.name ?? "Salon SaaS"}</span>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-slate-100 bg-white flex flex-col py-6 px-4 backdrop-blur-md transition-transform duration-300 md:static md:translate-x-0 ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+        <div className="mb-10 px-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-primary font-headline max-w-[150px] truncate">
+              {tenant?.name ?? "The Atelier"}
             </h1>
-            <button className="md:hidden text-stone-400 hover:text-white transition" onClick={() => setIsSidebarOpen(false)}>
-              <X size={24} />
-            </button>
+            <p className="text-on-surface-variant/60 text-xs font-bold uppercase tracking-widest mt-1">Premium Management</p>
           </div>
-          
-          <div className="mb-8 rounded-2xl border border-white/5 bg-white/[0.02] p-4 flex gap-3 items-center">
-            <div className="w-10 h-10 rounded-full bg-stone-800 flex items-center justify-center text-amber-300 font-bold border border-white/10 shrink-0">
+          <button className="md:hidden text-on-surface-variant hover:text-primary transition" onClick={() => setIsSidebarOpen(false)}>
+            <X size={24} />
+          </button>
+        </div>
+
+        <nav className="flex-1 space-y-1">
+          {tabs.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabChange(tab.id as any)}
+                className={`flex w-full items-center gap-3 px-4 py-3 transition-colors ${
+                  isActive 
+                    ? "bg-[#610b83] text-white rounded-lg shadow-md shadow-primary/20 scale-100 active:scale-95" 
+                    : "text-on-surface-variant hover:text-primary hover:bg-primary/5 group rounded-lg"
+                }`}
+              >
+                <Icon size={18} className={isActive ? "opacity-100" : "group-hover:text-primary opacity-80"} />
+                <span className="text-sm font-medium">{tab.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="mt-auto pt-6 space-y-1 border-t border-slate-50">
+          <div className="flex items-center gap-3 px-4 py-3 text-on-surface-variant group">
+            <div className="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container font-bold text-xs ring-2 ring-primary-container/10 shrink-0">
               {session?.user?.name?.[0]?.toUpperCase() ?? "U"}
             </div>
-            <div className="overflow-hidden">
-              <p className="font-medium text-white text-sm leading-tight truncate">{session?.user?.name}</p>
-              <p className="text-stone-400 text-xs mt-0.5 capitalize flex items-center gap-1.5 truncate">
-                <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isAdmin ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
-                {(session?.user as any)?.role}
+            <div className="text-left overflow-hidden">
+              <p className="text-xs font-bold text-on-surface leading-tight truncate">{session?.user?.name}</p>
+              <p className="text-[10px] text-on-surface-variant font-medium truncate">
+                {(session?.user as any)?.role === "admin" ? "Lead Admin" : "Staff Member"}
               </p>
             </div>
           </div>
-
-          <nav className="flex-1 space-y-1.5">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id as any)}
-                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-all ${
-                    activeTab === tab.id ? "bg-amber-300 text-stone-950 shadow-md shadow-amber-300/10" : "text-stone-400 hover:bg-white/5 hover:text-white"
-                  }`}
-                >
-                  <Icon size={18} className={activeTab === tab.id ? "opacity-100" : "opacity-70"} />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </nav>
-
-          <button onClick={() => signOut({ callbackUrl: "/" })} className="mt-auto flex w-full items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3.5 text-sm text-stone-300 transition hover:bg-white/10 hover:text-white">
-            <LogOut size={18} className="opacity-70" />
-            Sign out
+          <button onClick={() => signOut({ callbackUrl: "/" })} className="flex w-full items-center gap-3 text-on-surface-variant hover:text-error px-4 py-3 transition-colors hover:bg-error/5 group rounded-lg">
+            <LogOut size={18} className="group-hover:text-error opacity-80" />
+            <span className="text-sm font-medium">Sign out</span>
           </button>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden relative bg-stone-900/10">
-        <header className="flex items-center justify-between border-b border-white/5 bg-stone-950/80 p-4 backdrop-blur md:hidden">
-          <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-stone-300 hover:text-white transition rounded-lg hover:bg-white/5">
+      <main className="flex-1 flex flex-col overflow-hidden relative bg-surface w-full">
+        {/* Top Navbar Header */}
+        <header className="sticky top-0 w-full z-40 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-3 flex justify-between items-center md:hidden">
+          <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-on-surface-variant hover:text-primary transition rounded-lg hover:bg-primary/5">
             <Menu size={24} />
           </button>
-          <span className="font-semibold text-white">{tabs.find(t => t.id === activeTab)?.label}</span>
-          <div className="w-10 h-10 rounded-full border border-white/10 bg-stone-800 flex items-center justify-center font-bold text-amber-300 text-sm">
+          <span className="font-bold font-headline text-on-surface">{tabs.find(t => t.id === activeTab)?.label}</span>
+          <div className="w-8 h-8 rounded-full border border-slate-200 bg-secondary-container flex items-center justify-center font-bold text-on-secondary-container text-xs shrink-0">
             {session?.user?.name?.[0]?.toUpperCase() ?? "U"}
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-6 md:p-10 lg:p-12 scroll-smooth">
-          <div className="mx-auto max-w-5xl space-y-8">
-            <div className="hidden md:flex justify-between items-end mb-10">
+        <div className="flex-1 overflow-y-auto p-6 md:p-8 lg:p-10 scroll-smooth">
+          <div className="mx-auto max-w-7xl space-y-8">
+            <div className="hidden md:flex justify-between items-end mb-8">
               <div>
-                <p className="text-sm font-medium text-amber-300 mb-1 tracking-wider uppercase">Dashboard Overview</p>
-                <h2 className="text-3xl lg:text-4xl font-semibold tracking-tight">{tabs.find(t => t.id === activeTab)?.label}</h2>
+                <h2 className="text-3xl font-extrabold text-on-surface tracking-tight font-headline">{tabs.find(t => t.id === activeTab)?.label}</h2>
+                <p className="text-on-surface-variant mt-1 font-medium">{
+                  activeTab === 'customers' ? "Curate and manage your salon's clientele" :
+                  activeTab === 'services' ? "Manage your service catalog and prices" :
+                  activeTab === 'visits' ? "Process checkouts and manage point of sale" :
+                  activeTab === 'staff' ? "Manage staff members and their roles" :
+                  "View business analytics and performance"
+                }</p>
               </div>
             </div>
 
             {error && (
-              <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-5 py-4 text-sm text-red-200 flex items-center gap-3 animate-in fade-in zoom-in duration-200">
-                <span className="bg-red-500/20 p-1 rounded-full text-red-400"><X size={14}/></span>
+              <div className="rounded-xl border border-error-container/20 bg-error-container px-5 py-4 text-sm text-on-error-container flex items-center gap-3 animate-in fade-in zoom-in duration-200">
+                <span className="bg-error/10 p-1 rounded-full text-error"><X size={14}/></span>
                 {error}
               </div>
             )}
 
             {/* Customers View */}
             {activeTab === "customers" && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="space-y-8 animate-in fade-in duration-500">
                 {isAdmin && (
-                  <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-6 lg:p-8 backdrop-blur-sm">
-                    <h3 className="text-lg font-medium mb-5 text-white flex items-center gap-2"><span className="w-1 h-5 rounded-full bg-amber-300"></span> Add New Customer</h3>
-                    <div className="flex flex-col md:flex-row gap-4">
-                      <input className="flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3.5 text-sm outline-none transition focus:border-amber-300 focus:bg-white/5" placeholder="Customer full name" value={name} onChange={(e) => setName(e.target.value)} />
-                      <input className="flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3.5 text-sm outline-none transition focus:border-amber-300 focus:bg-white/5" placeholder="Phone number" value={phone} onChange={(e) => setPhone(e.target.value)} />
-                      <button onClick={addCustomer} disabled={!name || !phone} className="rounded-xl bg-amber-300 px-8 py-3.5 text-sm font-semibold text-stone-950 transition-all hover:bg-amber-400 active:scale-95 disabled:opacity-50 disabled:active:scale-100">Create</button>
+                  <div className="bg-surface-container-lowest p-6 lg:p-8 rounded-xl soft-elevation border border-outline-variant/10">
+                    <div className="flex items-center gap-2 mb-6">
+                      <Users className="text-primary-container" size={24} />
+                      <h3 className="text-lg font-bold text-on-surface font-headline">Add New Customer</h3>
+                    </div>
+                    <div className="flex flex-col md:flex-row gap-6">
+                      <div className="flex-1 space-y-1.5">
+                        <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Customer Name</label>
+                        <input className="w-full border-0 border-b-2 border-outline-variant/20 bg-transparent py-2 px-0 focus:ring-0 focus:border-primary transition-all text-on-surface placeholder:text-slate-300" placeholder="e.g. Julianne Moore" value={name} onChange={(e) => setName(e.target.value)} />
+                      </div>
+                      <div className="flex-1 space-y-1.5">
+                        <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Phone Number</label>
+                        <input className="w-full border-0 border-b-2 border-outline-variant/20 bg-transparent py-2 px-0 focus:ring-0 focus:border-primary transition-all text-on-surface placeholder:text-slate-300" placeholder="+1 (555) 000-0000" value={phone} onChange={(e) => setPhone(e.target.value)} />
+                      </div>
+                      <div className="pt-4 flex items-end">
+                        <button 
+                          onClick={addCustomer} 
+                          disabled={!name || !phone || isLoading['addCustomer']} 
+                          className="w-full md:w-auto px-8 py-3 bg-gradient-to-br from-primary to-primary-container text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all flex items-center justify-center gap-2"
+                        >
+                          {isLoading['addCustomer'] && <Loader2 className="h-4 w-4 animate-spin" />}
+                          {isLoading['addCustomer'] ? "Creating..." : "Create"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
                 
-                <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-6 lg:p-8 backdrop-blur-sm">
-                  <h3 className="text-lg font-medium mb-6 text-white flex items-center gap-2"><span className="w-1 h-5 rounded-full bg-stone-500"></span> Customer Directory</h3>
+                <div className="bg-surface-container-lowest p-6 lg:p-8 rounded-xl soft-elevation border border-outline-variant/10">
+                  <div className="flex items-center gap-2 mb-6">
+                    <Users className="text-primary-container" size={24} />
+                    <h3 className="text-lg font-bold text-on-surface font-headline">Customer Directory</h3>
+                  </div>
                   {!customers ? (
-                    <div className="flex justify-center p-8 text-stone-400 animate-pulse">Loading directory...</div>
+                    <div className="flex justify-center p-8 text-on-surface-variant animate-pulse">Loading directory...</div>
                   ) : customers.length === 0 ? (
-                    <div className="text-center p-10 border border-dashed border-white/10 rounded-xl text-stone-500">No customers registered yet.</div>
+                    <div className="text-center p-10 border border-dashed border-outline-variant/30 rounded-xl text-on-surface-variant">No customers registered yet.</div>
                   ) : (
                     <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                       {customers.map((customer) => (
-                        <li key={customer.id} className="group rounded-2xl border border-white/5 bg-white/5 p-5 transition-all hover:bg-white/10 relative">
-                          <div className="pr-6"><div className="font-medium text-white text-lg tracking-tight truncate">{customer.name}</div><div className="text-stone-400 text-sm mt-1">{customer.phone}</div></div>
-                          {isAdmin && <button onClick={() => softDelete(customer.id, 'customer', mutateCustomers)} className="absolute top-4 right-4 text-stone-500 hover:text-red-400"><X size={16} /></button>}
+                        <li key={customer.id} className="group rounded-2xl border border-outline-variant/10 bg-surface-container-low p-5 transition-all hover:bg-surface-container-lowest hover:border-outline-variant/30 relative">
+                          <div className="pr-6"><div className="font-bold text-on-surface text-lg tracking-tight truncate">{customer.name}</div><div className="text-on-surface-variant text-sm mt-1">{customer.phone}</div></div>
+                          {isAdmin && (
+                            <button 
+                              onClick={() => softDelete(customer.id, 'customer', mutateCustomers)} 
+                              disabled={isLoading[`delete-${customer.id}`]}
+                              className="absolute top-4 right-4 text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                            >
+                              {isLoading[`delete-${customer.id}`] ? <Loader2 className="h-4 w-4 animate-spin" /> : <X size={16} />}
+                            </button>
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -416,75 +509,120 @@ export default function Dashboard() {
 
             {/* Services View */}
             {activeTab === "services" && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="space-y-8 animate-in fade-in duration-500">
                 {isAdmin && (
                   <div className="grid gap-8 lg:grid-cols-[1fr_2fr]">
-                    <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-6 lg:p-8 backdrop-blur-sm shadow-xl shadow-black/20">
-                      <h3 className="text-lg font-medium mb-5 text-white flex items-center gap-2">
-                        <span className="w-1 h-5 rounded-full bg-sky-400"></span> Manage Categories
-                      </h3>
-                      <div className="flex gap-4 mb-6">
-                        <input className="flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3.5 text-sm outline-none transition focus:border-sky-400 focus:bg-white/5 text-stone-200" placeholder="New Category (e.g. Hair)" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} />
-                        <button onClick={addCategory} disabled={!newCategoryName} className="rounded-xl bg-sky-400 px-6 py-3.5 text-sm font-semibold text-stone-950 transition-all hover:bg-sky-500 active:scale-95 disabled:opacity-50 disabled:active:scale-100">Add</button>
+                    <div className="bg-surface-container-lowest p-6 lg:p-8 rounded-xl soft-elevation border border-outline-variant/10">
+                      <div className="flex items-center gap-2 mb-6">
+                        <Scissors className="text-primary-container" size={24} />
+                        <h3 className="text-lg font-bold text-on-surface font-headline">Categories</h3>
+                      </div>
+                      <div className="flex flex-col gap-4 mb-6">
+                        <div className="space-y-1.5 w-full">
+                          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">New Category</label>
+                          <input className="w-full border-0 border-b-2 border-outline-variant/20 bg-transparent py-2 px-0 focus:ring-0 focus:border-primary transition-all text-on-surface placeholder:text-slate-300" placeholder="e.g. Hair" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} />
+                        </div>
+                        <button 
+                          onClick={addCategory} 
+                          disabled={!newCategoryName || isLoading['addCategory']} 
+                          className="w-full px-6 py-2.5 bg-secondary-container text-on-secondary-container font-bold rounded-lg hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all flex items-center justify-center gap-2"
+                        >
+                          {isLoading['addCategory'] && <Loader2 className="h-4 w-4 animate-spin" />}
+                          {isLoading['addCategory'] ? "Adding..." : "Add"}
+                        </button>
                       </div>
                       
                       {!categories ? (
-                        <div className="text-stone-400 text-sm animate-pulse">Loading tags...</div>
+                        <div className="text-on-surface-variant text-sm animate-pulse">Loading tags...</div>
                       ) : categories.length === 0 ? (
-                        <div className="text-stone-500 text-sm italic">No custom categories created yet.</div>
+                         <div className="text-center py-6 border border-dashed border-outline-variant/30 rounded-xl text-on-surface-variant text-sm">No custom categories</div>
                       ) : (
                         <div className="flex flex-wrap gap-2">
                           {categories.map((c) => (
-                            <span key={c.id} className="inline-flex items-center gap-2 bg-white/10 text-stone-300 text-xs px-3 py-1.5 rounded-lg border border-white/5">
+                            <span key={c.id} className="inline-flex items-center gap-2 bg-surface-container-low text-on-surface text-xs font-medium px-3 py-1.5 rounded-lg border border-outline-variant/20">
                               {c.name}
-                              <button onClick={() => softDelete(c.id, 'category', mutateCategories)} className="text-stone-500 hover:text-red-400"><X size={14}/></button>
+                              <button 
+                                onClick={() => softDelete(c.id, 'category', mutateCategories)} 
+                                disabled={isLoading[`delete-${c.id}`]}
+                                className="text-on-surface-variant hover:text-error disabled:opacity-50"
+                              >
+                                {isLoading[`delete-${c.id}`] ? <Loader2 className="h-3 w-3 animate-spin" /> : <X size={14}/>}
+                              </button>
                             </span>
                           ))}
                         </div>
                       )}
                     </div>
 
-                    <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-6 lg:p-8 backdrop-blur-sm shadow-xl shadow-black/20">
-                      <h3 className="text-lg font-medium mb-5 text-white flex items-center gap-2">
-                        <span className="w-1 h-5 rounded-full bg-amber-300"></span> Add New Service
-                      </h3>
-                      <div className="flex flex-col md:flex-row gap-4">
-                        <input className="flex-[2] rounded-xl border border-white/10 bg-black/20 px-4 py-3.5 text-sm outline-none transition focus:border-amber-300 focus:bg-white/5" placeholder="Service name (e.g. Skin Fade)" value={serviceName} onChange={(e) => setServiceName(e.target.value)} />
-                        <input className="flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3.5 text-sm outline-none transition focus:border-amber-300 focus:bg-white/5" placeholder="Price" type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
+                    <div className="bg-surface-container-lowest p-6 lg:p-8 rounded-xl soft-elevation border border-outline-variant/10">
+                      <div className="flex items-center gap-2 mb-6">
+                        <Scissors className="text-primary-container" size={24} />
+                        <h3 className="text-lg font-bold text-on-surface font-headline">Add New Service</h3>
                       </div>
-                      <div className="flex gap-4 mt-4">
-                        <select className="flex-[2] rounded-xl border border-white/10 bg-black/20 px-4 py-3.5 text-sm outline-none transition focus:border-amber-300 focus:bg-white/5 text-stone-300" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
-                          <option value="">No Category</option>
-                          {categories?.map((c) => (
-                            <option key={c.id} value={c.id}>{c.name}</option>
-                          ))}
-                        </select>
-                        <button onClick={addService} disabled={!serviceName || !price} className="flex-1 rounded-xl bg-amber-300 px-8 py-3.5 text-sm font-semibold text-stone-950 transition-all hover:bg-amber-400 active:scale-95 disabled:opacity-50 disabled:active:scale-100">Create Item</button>
+                      <div className="flex flex-col md:flex-row gap-6">
+                        <div className="flex-[2] space-y-1.5">
+                          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Service Name</label>
+                          <input className="w-full border-0 border-b-2 border-outline-variant/20 bg-transparent py-2 px-0 focus:ring-0 focus:border-primary transition-all text-on-surface placeholder:text-slate-300" placeholder="e.g. Skin Fade" value={serviceName} onChange={(e) => setServiceName(e.target.value)} />
+                        </div>
+                        <div className="flex-1 space-y-1.5">
+                          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Price (Rs.)</label>
+                          <input className="w-full border-0 border-b-2 border-outline-variant/20 bg-transparent py-2 px-0 focus:ring-0 focus:border-primary transition-all text-on-surface placeholder:text-slate-300" placeholder="0.00" type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)} />
+                        </div>
+                      </div>
+                      <div className="flex flex-col md:flex-row gap-6 mt-6 items-end">
+                        <div className="flex-[2] space-y-1.5 w-full">
+                          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Category</label>
+                          <select className="w-full border-0 border-b-2 border-outline-variant/20 bg-transparent py-2 px-0 focus:ring-0 focus:border-primary transition-all text-on-surface" value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
+                            <option value="">No Category</option>
+                            {categories?.map((c) => (
+                              <option key={c.id} value={c.id}>{c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <button 
+                          onClick={addService} 
+                          disabled={!serviceName || !price || isLoading['addService']} 
+                          className="flex-1 w-full md:w-auto px-8 py-3 bg-gradient-to-br from-primary to-primary-container text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all flex items-center justify-center gap-2"
+                        >
+                          {isLoading['addService'] && <Loader2 className="h-4 w-4 animate-spin" />}
+                          {isLoading['addService'] ? "Creating..." : "Create Item"}
+                        </button>
                       </div>
                     </div>
                   </div>
                 )}
 
-                <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-6 lg:p-8 backdrop-blur-sm">
-                  <h3 className="text-lg font-medium mb-6 text-white flex items-center gap-2"><span className="w-1 h-5 rounded-full bg-stone-500"></span> Available Services</h3>
+                <div className="bg-surface-container-lowest p-6 lg:p-8 rounded-xl soft-elevation border border-outline-variant/10">
+                  <div className="flex items-center gap-2 mb-6">
+                    <Scissors className="text-primary-container" size={24} />
+                    <h3 className="text-lg font-bold text-on-surface font-headline">Available Services</h3>
+                  </div>
                   {!services ? (
-                    <div className="flex justify-center p-8 text-stone-400 animate-pulse">Loading catalog...</div>
+                    <div className="flex justify-center p-8 text-on-surface-variant animate-pulse">Loading catalog...</div>
                   ) : services.length === 0 ? (
-                    <div className="text-center p-10 border border-dashed border-white/10 rounded-xl text-stone-500">No services created yet.</div>
+                    <div className="text-center p-10 border border-dashed border-outline-variant/30 rounded-xl text-on-surface-variant">No services created yet.</div>
                   ) : (
                     <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                       {services.map((service) => (
-                        <li key={service.id} className="group rounded-2xl border border-white/5 bg-white/5 p-5 flex flex-col justify-between transition-all hover:bg-white/10 hover:-translate-y-1 relative">
+                        <li key={service.id} className="group rounded-2xl border border-outline-variant/10 bg-surface-container-low p-5 flex flex-col justify-between transition-all hover:bg-surface-container-lowest hover:border-outline-variant/30 relative">
                           <div className="pr-6">
                             {service.category && (
-                              <span className="inline-block bg-white/10 text-stone-300 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded mb-2">
+                              <span className="inline-block bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded mb-3">
                                 {service.category.name}
                               </span>
                             )}
-                            <div className="font-medium text-white tracking-tight">{service.name}</div>
+                            <div className="font-bold text-on-surface tracking-tight leading-tight">{service.name}</div>
                           </div>
-                          <div className="text-amber-300 font-semibold mt-4 text-lg">Rs. {service.price.toFixed(2)}</div>
-                          {isAdmin && <button onClick={() => softDelete(service.id, 'service', mutateServices)} className="absolute top-4 right-4 text-stone-500 opacity-0 group-hover:opacity-100 hover:text-red-400 transition-opacity"><X size={16} /></button>}
+                          <div className="text-primary font-extrabold mt-4 text-lg">Rs. {service.price.toFixed(2)}</div>
+                          {isAdmin && (
+                            <button 
+                              onClick={() => softDelete(service.id, 'service', mutateServices)} 
+                              disabled={isLoading[`delete-${service.id}`]}
+                              className="absolute top-4 right-4 text-on-surface-variant opacity-0 group-hover:opacity-100 hover:text-error transition-opacity disabled:opacity-50"
+                            >
+                              {isLoading[`delete-${service.id}`] ? <Loader2 className="h-4 w-4 animate-spin" /> : <X size={16} />}
+                            </button>
+                          )}
                         </li>
                       ))}
                     </ul>
@@ -495,16 +633,15 @@ export default function Dashboard() {
 
             {/* POS Checkout (Visits View) */}
             {activeTab === "visits" && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                
+              <div className="space-y-8 animate-in fade-in duration-500">
                 {/* Visual Editing Notice Banner */}
                 {editingId && (
-                  <div className="bg-sky-500/10 border border-sky-500/20 text-sky-400 px-6 py-4 rounded-[1.5rem] flex items-center justify-between shadow-lg">
-                    <div className="flex items-center gap-3 font-medium">
+                  <div className="bg-sky-50 border border-sky-100 text-sky-700 px-6 py-4 rounded-xl flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-3 font-bold text-sm">
                       <Edit size={18} />
-                      Actively editing existing transaction module mapping.
+                      Modifying existing transaction module.
                     </div>
-                    <button onClick={cancelEdit} className="text-sm px-4 py-2 bg-white/5 hover:bg-white/10 rounded-lg transition text-stone-200">
+                    <button onClick={cancelEdit} className="text-sm px-4 py-2 bg-white hover:bg-slate-50 border border-sky-200 rounded-lg transition text-slate-700 font-bold">
                       Cancel 
                     </button>
                   </div>
@@ -513,32 +650,39 @@ export default function Dashboard() {
                 <div className="grid md:grid-cols-[1fr_350px] gap-8">
                   {/* Left Column: Register POS Input */}
                   <div className="space-y-6">
-                    <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-6 lg:p-8 backdrop-blur-sm shadow-xl shadow-black/20">
-                      <h3 className="text-lg font-medium mb-5 text-white flex items-center gap-2">
-                        <span className="w-1 h-5 rounded-full bg-emerald-400"></span> Checkout Details
-                      </h3>
-                      <div className="flex flex-col sm:flex-row gap-4 mb-4">
-                        <input
-                          className="flex-[2] rounded-xl border border-white/10 bg-black/20 px-4 py-3.5 text-sm outline-none transition focus:border-amber-300 focus:bg-white/5 text-stone-200 disabled:opacity-50"
-                          placeholder="Customer Name (Required if new)"
-                          value={visitCustomerName} onChange={(e) => setVisitCustomerName(e.target.value)}
-                          disabled={!!editingId}
-                        />
-                        <input
-                          className="flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3.5 text-sm outline-none transition focus:border-amber-300 focus:bg-white/5 text-stone-200 disabled:opacity-50"
-                          placeholder="Phone Number"
-                          value={visitCustomerPhone} onChange={(e) => setVisitCustomerPhone(e.target.value)}
-                          disabled={!!editingId}
-                        />
+                    <div className="bg-surface-container-lowest p-6 lg:p-8 rounded-xl soft-elevation border border-outline-variant/10">
+                      <div className="flex items-center gap-2 mb-6">
+                        <Users className="text-primary-container" size={24} />
+                        <h3 className="text-lg font-bold text-on-surface font-headline">Customer Information</h3>
+                      </div>
+                      <div className="flex flex-col sm:flex-row gap-6 mb-6">
+                        <div className="flex-[2] space-y-1.5">
+                          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Customer Name *</label>
+                          <input
+                            className="w-full border-0 border-b-2 border-outline-variant/20 bg-transparent py-2 px-0 focus:ring-0 focus:border-primary transition-all text-on-surface placeholder:text-slate-300 disabled:opacity-50"
+                            placeholder="e.g. John Doe"
+                            value={visitCustomerName} onChange={(e) => setVisitCustomerName(e.target.value)}
+                            disabled={!!editingId}
+                          />
+                        </div>
+                        <div className="flex-1 space-y-1.5">
+                          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Phone Number *</label>
+                          <input
+                            className="w-full border-0 border-b-2 border-outline-variant/20 bg-transparent py-2 px-0 focus:ring-0 focus:border-primary transition-all text-on-surface placeholder:text-slate-300 disabled:opacity-50"
+                            placeholder="+1 (555) 000-0000"
+                            value={visitCustomerPhone} onChange={(e) => setVisitCustomerPhone(e.target.value)}
+                            disabled={!!editingId}
+                          />
+                        </div>
                       </div>
 
                       {/* Staff Dropdown Component */}
-                      <div className="relative border-t border-white/10 pt-4 mt-2">
-                        <div className="flex gap-4 items-center">
-                          <label className="text-sm text-stone-400 min-w-max">Assigned Staff:</label>
+                      <div className="relative border-t border-outline-variant/20 pt-6">
+                        <div className="flex flex-col sm:flex-row gap-4 sm:items-center">
+                          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider min-w-max">Assigned Staff:</label>
                           <div className="relative flex-1">
                             <input
-                              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-sm outline-none transition focus:border-amber-300 text-stone-200 placeholder-stone-600"
+                              className="w-full rounded-lg border border-outline-variant/30 bg-surface-container-low px-4 py-3 text-sm outline-none transition focus:border-primary text-on-surface placeholder:text-slate-400 font-medium"
                               placeholder={selectedStaffId ? (employees?.find(s => s.id === selectedStaffId)?.name || "Assigned") : "Search employee..."}
                               value={staffQuery}
                               onChange={(e) => {
@@ -550,7 +694,7 @@ export default function Dashboard() {
                             />
                             {/* Autocomplete Dropdown */}
                             {filteredEmployees.length > 0 && !selectedStaffId && (
-                              <div className="absolute top-full left-0 right-0 mt-2 z-10 bg-stone-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden max-h-48 overflow-y-auto animate-in fade-in slide-in-from-top-2">
+                              <div className="absolute top-full left-0 right-0 mt-2 z-10 bg-surface-container-highest border border-outline-variant/20 rounded-xl shadow-2xl overflow-hidden max-h-48 overflow-y-auto animate-in fade-in slide-in-from-top-2">
                                 {filteredEmployees.map((s) => (
                                   <button
                                     key={s.id}
@@ -559,10 +703,10 @@ export default function Dashboard() {
                                       setStaffQuery(s.name);
                                       setFilteredEmployees([]);
                                     }}
-                                    className="w-full text-left px-5 py-3 hover:bg-white/5 flex items-center justify-between border-b border-white/5 last:border-0 transition-colors"
+                                    className="w-full text-left px-5 py-3 hover:bg-surface-dim flex items-center justify-between border-b border-outline-variant/10 last:border-0 transition-colors"
                                   >
-                                    <span className="font-medium text-stone-200">{s.name}</span>
-                                    <span className="text-stone-500 text-xs uppercase">{s.gender}</span>
+                                    <span className="font-bold text-on-surface">{s.name}</span>
+                                    <span className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">{s.gender}</span>
                                   </button>
                                 ))}
                               </div>
@@ -572,16 +716,17 @@ export default function Dashboard() {
                       </div>
                     </div>
 
-                    <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-6 lg:p-8 backdrop-blur-sm min-h-[300px] shadow-xl shadow-black/20">
-                      <h3 className="text-lg font-medium mb-5 text-white flex items-center gap-2">
-                        <span className="w-1 h-5 rounded-full bg-amber-300"></span> Scan / Attach Services
-                      </h3>
+                    <div className="bg-surface-container-lowest p-6 lg:p-8 rounded-xl soft-elevation border border-outline-variant/10 min-h-[300px]">
+                      <div className="flex items-center gap-2 mb-6">
+                        <Scissors className="text-primary-container" size={24} />
+                        <h3 className="text-lg font-bold text-on-surface font-headline">Service Selection</h3>
+                      </div>
                       
                       {/* Search Bar */}
                       <div className="relative mb-6">
-                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant" size={18} />
                         <input
-                          className="w-full rounded-xl border border-white/10 bg-black/20 pl-11 pr-4 py-3.5 text-sm outline-none transition focus:border-amber-300 focus:bg-white/5 text-stone-200"
+                          className="w-full rounded-xl border border-outline-variant/30 bg-surface-container-low pl-11 pr-4 py-3 text-sm outline-none transition focus:border-primary text-on-surface font-medium placeholder:text-slate-400"
                           placeholder="Search for a service... (e.g. Haircut)"
                           value={query}
                           onChange={(e) => setQuery(e.target.value)}
@@ -589,47 +734,47 @@ export default function Dashboard() {
                         
                         {/* Autocomplete Dropdown */}
                         {filteredServices.length > 0 && (
-                          <div className="absolute top-full left-0 right-0 mt-2 z-10 bg-stone-900 border border-white/10 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2">
+                          <div className="absolute top-full left-0 right-0 mt-2 z-10 bg-surface-container-highest border border-outline-variant/20 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto animate-in fade-in slide-in-from-top-2">
                             {filteredServices.map((s) => (
                               <button
                                 key={s.id}
                                 onClick={() => addServiceToVisit(s)}
-                                className="w-full text-left px-5 py-3 hover:bg-white/5 flex items-center justify-between border-b border-white/5 last:border-0 transition-colors"
+                                className="w-full text-left px-5 py-3 hover:bg-surface-dim flex items-center justify-between border-b border-outline-variant/10 last:border-0 transition-colors"
                               >
                                 <div>
-                                  <span className="font-medium text-stone-200 block">{s.name}</span>
-                                  {s.category && <span className="text-[10px] text-stone-500 uppercase">{s.category.name}</span>}
+                                  <span className="font-bold text-on-surface block leading-tight">{s.name}</span>
+                                  {s.category && <span className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">{s.category.name}</span>}
                                 </div>
-                                <span className="text-amber-300 text-sm whitespace-nowrap">Rs. {s.price}</span>
+                                <span className="text-primary font-bold text-sm whitespace-nowrap">Rs. {s.price}</span>
                               </button>
                             ))}
                           </div>
                         )}
                         {query.trim() && filteredServices.length === 0 && (
-                          <div className="absolute top-full left-0 right-0 mt-2 z-10 bg-stone-900 border border-white/10 rounded-xl shadow-2xl p-4 text-center text-stone-400 text-sm">
+                          <div className="absolute top-full left-0 right-0 mt-2 z-10 bg-surface-container-highest border border-outline-variant/20 rounded-xl shadow-xl p-4 text-center text-on-surface-variant text-sm font-medium">
                             No matching services found.
                           </div>
                         )}
                       </div>
 
                       {/* Selected Items Array */}
-                      <div className="space-y-2">
+                      <div className="space-y-3">
                         {selectedServices.length === 0 ? (
-                          <div className="border border-dashed border-white/10 rounded-xl p-8 text-center text-stone-500 text-sm">
+                          <div className="border border-dashed border-outline-variant/30 bg-surface-container-low rounded-xl p-8 text-center text-on-surface-variant text-sm font-medium">
                             No services attached to this checkout yet.
                           </div>
                         ) : (
                           selectedServices.map((item) => (
-                            <div key={item.id} className="flex justify-between items-center p-4 bg-white/5 border border-white/5 rounded-xl animate-in slide-in-from-left-2">
+                            <div key={item.id} className="flex justify-between items-center p-4 bg-surface-container-low border border-outline-variant/20 rounded-xl animate-in slide-in-from-left-2 shadow-sm">
                               <div>
-                                <h4 className="font-medium text-white text-sm">{item.name}</h4>
-                                <p className="text-stone-400 text-xs">{item.category?.name ?? "Standard Service"}</p>
+                                <h4 className="font-bold text-on-surface text-sm">{item.name}</h4>
+                                <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">{item.category?.name ?? "Standard Service"}</p>
                               </div>
                               <div className="flex items-center gap-4">
-                                <span className="font-medium text-stone-300 text-sm">Rs. {item.price}</span>
+                                <span className="font-bold text-primary text-sm">Rs. {item.price}</span>
                                 <button
                                   onClick={() => removeServiceFromVisit(item.id)}
-                                  className="p-1.5 text-stone-500 hover:text-red-400 hover:bg-white/5 rounded-lg transition"
+                                  className="p-1.5 text-on-surface-variant hover:text-error hover:bg-error/10 rounded-lg transition"
                                 >
                                   <Trash2 size={16} />
                                 </button>
@@ -643,29 +788,29 @@ export default function Dashboard() {
 
                   {/* Right Column: Checkout Total Sidebar */}
                   <div className="space-y-6">
-                    <div className="sticky top-6 rounded-[1.5rem] bg-gradient-to-b from-stone-900 to-stone-950 border border-white/10 p-6 shadow-2xl">
-                      <h3 className="text-sm font-semibold uppercase tracking-wider text-stone-400 mb-5 flex justify-between">
+                    <div className="sticky top-6 rounded-xl bg-surface-container-lowest border border-outline-variant/10 p-6 soft-elevation">
+                      <h3 className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant mb-6 flex justify-between items-center">
                         Payment Summary
-                        {editingId && <span className="text-sky-400 font-bold bg-sky-400/10 px-2 rounded">AMENDMENT</span>}
+                        {editingId && <span className="text-sky-600 font-bold bg-sky-100 px-2 py-0.5 rounded border border-sky-200">AMENDMENT</span>}
                       </h3>
                       
-                      <div className="space-y-4 mb-5 border-b border-white/10 pb-5">
+                      <div className="space-y-4 mb-6 border-b border-outline-variant/20 pb-6">
                         <div className="flex justify-between items-center text-sm">
-                          <span className="text-stone-400">Total Lines</span>
-                          <span className="text-white font-medium">{selectedServices.length} Items</span>
+                          <span className="text-on-surface-variant font-medium">Total Lines</span>
+                          <span className="text-on-surface font-bold">{selectedServices.length} Items</span>
                         </div>
                         <div className="flex justify-between items-center text-sm">
-                          <span className="text-stone-400">Gross Total</span>
-                          <span className="text-white font-medium">Rs. {visitTotal.toFixed(2)}</span>
+                          <span className="text-on-surface-variant font-medium">Gross Total</span>
+                          <span className="text-on-surface font-bold">Rs. {visitTotal.toFixed(2)}</span>
                         </div>
                       </div>
 
                       {/* Discount Module */}
-                      <div className="space-y-3 mb-6 border-b border-white/10 pb-6">
-                        <label className="text-xs font-semibold uppercase tracking-wider text-stone-500">Apply Discount</label>
+                      <div className="space-y-4 mb-6 border-b border-outline-variant/20 pb-6">
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block">Apply Discount</label>
                         <div className="flex gap-2">
                           <select
-                            className="bg-black/30 border border-white/10 rounded-lg px-2 py-2 text-white outline-none focus:border-amber-300 transition-colors w-16 text-center appearance-none"
+                            className="bg-surface-container border border-outline-variant/20 rounded-lg px-2 py-2 text-on-surface font-bold outline-none focus:border-primary transition-colors w-16 text-center appearance-none"
                             value={discountType}
                             onChange={(e) => setDiscountType(e.target.value as any)}
                           >
@@ -675,16 +820,16 @@ export default function Dashboard() {
                           <input 
                             type="number" 
                             min="0"
-                            className="flex-1 rounded-lg border border-white/10 bg-black/20 px-3 py-2 text-sm outline-none transition focus:border-amber-300 focus:bg-white/5 text-stone-200"
+                            className="flex-1 rounded-lg border border-outline-variant/20 bg-surface p-2 text-sm outline-none transition focus:border-primary text-on-surface font-bold placeholder:text-slate-300"
                             placeholder={discountType === "percentage" ? "15" : "150.00"}
                             value={discountValue}
                             onChange={(e) => setDiscountValue(e.target.value === "" ? "" : Number(e.target.value))}
                           />
                         </div>
                         <div className="flex justify-between items-center text-sm pt-2">
-                          <span className="text-stone-400">Payment Type</span>
+                          <span className="text-on-surface-variant font-medium">Payment Type</span>
                           <select
-                            className="bg-black/30 border border-white/10 rounded-lg px-2 py-1 text-white outline-none focus:border-amber-300 transition-colors"
+                            className="bg-surface-container border border-outline-variant/20 rounded-lg px-3 py-1.5 text-on-surface font-bold outline-none focus:border-primary transition-colors text-xs"
                             value={paymentMethod}
                             onChange={(e) => setPaymentMethod(e.target.value)}
                           >
@@ -696,34 +841,39 @@ export default function Dashboard() {
                         </div>
                       </div>
 
-                      <div className="flex justify-between items-end mb-6">
-                        <span className="text-stone-300 font-medium">{editingId ? 'Refactored Due' : 'Final Amount'}</span>
-                        <span className="text-3xl font-bold text-amber-300 tracking-tight">
+                      <div className="flex justify-between items-end mb-8">
+                        <span className="text-on-surface-variant font-bold text-sm tracking-tight">{editingId ? 'Refactored Due' : 'Final Amount'}</span>
+                        <span className="text-3xl font-extrabold text-primary tracking-tight font-headline">
                           Rs. {finalAmount.toFixed(2)}
                         </span>
                       </div>
 
                       <button
                         onClick={handleCheckoutSubmit}
-                        disabled={!visitCustomerPhone || selectedServices.length === 0}
-                        className={`w-full rounded-xl py-4 text-sm font-bold transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100 shadow-xl flex items-center justify-center gap-2 ${editingId ? 'bg-sky-500 text-white hover:bg-sky-400 shadow-sky-500/20' : 'bg-amber-300 text-stone-950 hover:bg-amber-400 shadow-amber-500/10'}`}
+                        disabled={!visitCustomerPhone || selectedServices.length === 0 || isLoading['checkout']}
+                        className={`w-full rounded-xl py-4 text-sm font-bold transition-all active:scale-95 disabled:opacity-50 disabled:active:scale-100 shadow-lg flex items-center justify-center gap-2 ${editingId ? 'bg-sky-500 text-white hover:bg-sky-600 shadow-sky-500/20' : 'bg-gradient-to-br from-primary to-primary-container text-white hover:scale-[1.02] shadow-primary/20'}`}
                       >
-                        {editingId ? <Edit size={18} /> : <BookCheck size={18} />}
-                        {editingId ? 'Overwrite Receipt' : 'Process Checkout'}
+                        {isLoading['checkout'] ? (
+                          <Loader2 className="h-5 w-5 animate-spin" />
+                        ) : (
+                          editingId ? <Edit size={18} /> : <BookCheck size={18} />
+                        )}
+                        {isLoading['checkout'] ? 'Processing...' : (editingId ? 'Overwrite Receipt' : 'Process Checkout')}
                       </button>
                     </div>
                   </div>
                 </div>
 
                 {/* Historical Bills Matrix */}
-                <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-6 lg:p-8 backdrop-blur-sm mt-8 shadow-xl shadow-black/20">
-                  <h3 className="text-lg font-medium mb-6 text-white flex items-center gap-2">
-                    <span className="w-1 h-5 rounded-full bg-stone-500"></span> Recent Receipts Log
-                  </h3>
+                <div className="bg-surface-container-lowest p-6 lg:p-8 rounded-xl soft-elevation border border-outline-variant/10 mt-8">
+                  <div className="flex items-center gap-2 mb-6">
+                    <History className="text-primary-container" size={24} />
+                    <h3 className="text-lg font-bold text-on-surface font-headline">Recent Receipts Log</h3>
+                  </div>
                   {!visits ? (
-                    <div className="flex justify-center p-8 text-stone-400 animate-pulse">Loading receipts...</div>
+                    <div className="flex justify-center p-8 text-on-surface-variant animate-pulse">Loading receipts...</div>
                   ) : visits.length === 0 ? (
-                    <div className="text-center p-10 border border-dashed border-white/10 rounded-xl text-stone-500">No checkout history generated.</div>
+                    <div className="text-center p-10 border border-dashed border-outline-variant/30 rounded-xl text-on-surface-variant">No checkout history generated.</div>
                   ) : (
                     <div className="space-y-4">
                       {visits.map((visit) => {
@@ -731,45 +881,45 @@ export default function Dashboard() {
                         const hasDiscount = visit.discountValue && visit.discountValue > 0;
                         
                         return (
-                          <div key={visit.id} className="group rounded-2xl border border-white/10 bg-white/5 p-5 transition-all hover:bg-white/10 relative">
+                          <div key={visit.id} className="group rounded-2xl border border-outline-variant/10 bg-surface-container-low p-5 transition-all hover:bg-surface-container-lowest hover:border-outline-variant/30 relative shadow-sm">
                             <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 pr-10">
                               <div>
-                                <h4 className="font-semibold text-lg text-white gap-2 flex items-center">
+                                <h4 className="font-extrabold text-lg text-on-surface gap-2 flex items-center tracking-tight leading-none mb-1.5">
                                   {visit.customer?.name ?? 'Unknown Customer'}
-                                  {hasDiscount && <span className="bg-emerald-500/20 text-emerald-400 text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-wider">Discounted</span>}
+                                  {hasDiscount && <span className="bg-tertiary-container/10 text-tertiary-container border border-tertiary-container/20 text-[10px] px-2 py-0.5 rounded uppercase font-bold tracking-widest">Discounted</span>}
                                 </h4>
-                                <p className="text-stone-400 text-sm flex gap-2">
+                                <p className="text-on-surface-variant text-sm flex items-center gap-2 font-medium">
                                   {visit.customer?.phone} 
-                                  <span className="text-stone-600">•</span> 
-                                  <span className="uppercase text-amber-300/80 tracking-wide font-medium">{visit.paymentMethod}</span>
+                                  <span className="text-outline-variant">•</span> 
+                                  <span className="uppercase text-primary font-bold text-xs tracking-wider">{visit.paymentMethod}</span>
                                   {visit.staff && (
                                     <>
-                                      <span className="text-stone-600">•</span>
-                                      <span className="text-stone-300">Staff: {visit.staff.name}</span>
+                                      <span className="text-outline-variant">•</span>
+                                      <span className="text-on-surface-variant">Staff: {visit.staff.name}</span>
                                     </>
                                   )}
                                 </p>
-                                <div className="mt-3 flex flex-wrap gap-2">
+                                <div className="mt-4 flex flex-wrap gap-2">
                                   {visit.services.map((item) => (
-                                    <span key={item.id} className="inline-block bg-white/10 text-stone-300 text-xs px-2.5 py-1 rounded-md">
-                                      {item.service?.name ?? "Unknown"} (Rs. {item.service?.price ?? 0})
+                                    <span key={item.id} className="inline-flex bg-surface-container-highest text-on-surface font-semibold text-[10px] uppercase tracking-wider px-2.5 py-1 rounded border border-outline-variant/20">
+                                      {item.service?.name ?? "Unknown"} <span className="text-primary ml-1">(Rs. {item.service?.price ?? 0})</span>
                                     </span>
                                   ))}
                                 </div>
                               </div>
                               <div className="flex flex-col sm:items-end gap-1 shrink-0">
-                                {hasDiscount && <span className="text-stone-500 line-through text-xs">Rs. {(visit.totalAmount || 0).toFixed(2)}</span>}
-                                <span className="font-bold text-amber-300 text-xl flex items-baseline gap-1">
+                                {hasDiscount && <span className="text-on-surface-variant line-through text-xs font-medium">Rs. {(visit.totalAmount || 0).toFixed(2)}</span>}
+                                <span className="font-extrabold text-primary text-xl flex items-baseline gap-1">
                                   Rs. {(visit.finalAmount ?? visit.totalAmount ?? 0).toFixed(2)}
                                 </span>
-                                <span className="text-stone-500 text-xs uppercase tracking-widest">{dateObj.toLocaleDateString()} {dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                <span className="text-on-surface-variant text-[10px] uppercase font-bold tracking-widest mt-1">{dateObj.toLocaleDateString()} {dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                               </div>
                             </div>
                             <div className="absolute top-5 right-5 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => editVisit(visit)} className="text-stone-400 hover:text-sky-400 bg-black/40 p-1.5 rounded-md hover:bg-sky-400/10">
+                              <button onClick={() => editVisit(visit)} className="text-on-surface-variant hover:text-sky-500 bg-surface rounded-md p-1.5 border border-outline-variant/20 shadow-sm transition-colors">
                                 <Edit size={16} />
                               </button>
-                              <button onClick={() => softDelete(visit.id, 'visit', mutateVisits)} className="text-stone-400 hover:text-red-400 bg-black/40 p-1.5 rounded-md hover:bg-red-400/10">
+                              <button onClick={() => softDelete(visit.id, 'visit', mutateVisits)} className="text-on-surface-variant hover:text-error bg-surface rounded-md p-1.5 border border-outline-variant/20 shadow-sm transition-colors">
                                 <Trash2 size={16} />
                               </button>
                             </div>
@@ -784,43 +934,50 @@ export default function Dashboard() {
             
             {/* Staff / Employees View */}
             {activeTab === "staff" && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-6 lg:p-8 backdrop-blur-sm shadow-xl shadow-black/20">
-                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <h3 className="text-lg font-medium text-white flex items-center gap-2">
-                      <span className="w-1 h-5 rounded-full bg-emerald-400"></span> 
-                      Manage Salon Employees
-                    </h3>
+              <div className="space-y-8 animate-in fade-in duration-500">
+                <div className="bg-surface-container-lowest p-6 lg:p-8 rounded-xl soft-elevation border border-outline-variant/10">
+                  <div className="flex items-center gap-2 mb-6">
+                    <Briefcase className="text-primary-container" size={24} />
+                    <h3 className="text-lg font-bold text-on-surface font-headline">Manage Salon Employees</h3>
                   </div>
                   
                   {isAdmin && (
-                    <div className="bg-white/5 border border-white/10 rounded-2xl p-4 md:p-6 mb-6">
-                      <h4 className="text-sm text-stone-400 mb-4 tracking-wider uppercase">Add Employee</h4>
-                      <div className="flex flex-col md:flex-row gap-4">
-                        <input className="flex-[2] rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none transition focus:border-amber-300 focus:bg-white/5" placeholder="Employee Name" value={employeeName} onChange={(e) => setEmployeeName(e.target.value)} />
-                        <select className="flex-1 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none transition focus:border-amber-300 focus:bg-white/5 text-stone-200" value={employeeGender} onChange={(e) => setEmployeeGender(e.target.value)}>
-                          <option value="Male">Male</option>
-                          <option value="Female">Female</option>
-                        </select>
-                        <button onClick={addEmployee} disabled={!employeeName} className="rounded-xl bg-emerald-400 px-8 py-3 text-sm font-semibold text-stone-950 transition-all hover:bg-emerald-500">Register</button>
+                    <div className="bg-surface-container-low border border-outline-variant/20 rounded-2xl p-6 mb-8">
+                      <h4 className="text-[10px] font-bold text-on-surface-variant mb-6 tracking-widest uppercase">Register New Staff Member</h4>
+                      <div className="flex flex-col md:flex-row gap-6">
+                        <div className="flex-[2] space-y-1.5">
+                          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Employee Name</label>
+                          <input className="w-full border-0 border-b-2 border-outline-variant/20 bg-transparent py-2 px-0 focus:ring-0 focus:border-primary transition-all text-on-surface font-bold placeholder:text-slate-300" placeholder="e.g. Sarah Connor" value={employeeName} onChange={(e) => setEmployeeName(e.target.value)} />
+                        </div>
+                        <div className="flex-1 space-y-1.5">
+                          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Gender Orientation</label>
+                          <select className="w-full border-0 border-b-2 border-outline-variant/20 bg-transparent py-2 px-0 focus:ring-0 focus:border-primary transition-all text-on-surface font-bold" value={employeeGender} onChange={(e) => setEmployeeGender(e.target.value)}>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                          </select>
+                        </div>
+                        <div className="pt-4 flex items-end">
+                          <button onClick={addEmployee} disabled={!employeeName} className="w-full md:w-auto px-8 py-3 bg-gradient-to-br from-primary to-primary-container text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all">Register</button>
+                        </div>
                       </div>
                     </div>
                   )}
 
                   {!employees ? (
-                    <div className="flex justify-center p-8 text-stone-400 animate-pulse">Loading staff...</div>
+                    <div className="flex justify-center p-8 text-on-surface-variant animate-pulse font-medium">Loading staff...</div>
                   ) : employees.length === 0 ? (
-                    <div className="text-center p-10 border border-dashed border-white/10 rounded-xl text-stone-500">No employees listed.</div>
+                    <div className="text-center p-10 border border-dashed border-outline-variant/30 rounded-xl text-on-surface-variant font-medium">No employees listed.</div>
                   ) : (
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                       {employees.map((member) => (
-                        <div key={member.id} className="group rounded-2xl border border-white/5 bg-white/5 p-4 flex items-center justify-between hover:bg-white/10 transition-all">
+                        <div key={member.id} className="group rounded-2xl border border-outline-variant/10 bg-surface-container-low p-5 flex items-center justify-between hover:bg-surface-container-lowest hover:border-outline-variant/30 transition-all relative">
                           <div>
-                            <p className="font-medium text-white">{member.name}</p>
-                            <p className="text-stone-500 text-xs uppercase tracking-wider">{member.gender}</p>
+                            <p className="font-bold text-on-surface text-lg tracking-tight leading-none mb-1">{member.name}</p>
+                            <p className="text-on-surface-variant text-[10px] font-bold uppercase tracking-widest">{member.gender}</p>
                           </div>
                           {isAdmin && (
-                            <button onClick={() => softDelete(member.id, 'staff', mutateEmployees)} className="text-stone-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-2">
+                            <button onClick={() => softDelete(member.id, 'staff', mutateEmployees)} className="text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity p-2">
                               <Trash2 size={16} />
                             </button>
                           )}
@@ -834,35 +991,34 @@ export default function Dashboard() {
             
             {/* Reports View */}
             {activeTab === "reports" && (
-              <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="space-y-8 animate-in fade-in duration-500">
                 {/* Filters Section */}
-                <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-6 backdrop-blur-sm shadow-xl flex flex-col md:flex-row gap-6 items-center justify-between">
-                  <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-                    <button onClick={() => setDatePreset(7)} className="whitespace-nowrap px-4 py-2 rounded-lg bg-black/40 border border-white/10 text-sm hover:border-amber-400 hover:text-amber-400 transition-colors">7 Days</button>
-                    <button onClick={() => setDatePreset(15)} className="whitespace-nowrap px-4 py-2 rounded-lg bg-black/40 border border-white/10 text-sm hover:border-amber-400 hover:text-amber-400 transition-colors">15 Days</button>
-                    <button onClick={() => setDatePreset(30)} className="whitespace-nowrap px-4 py-2 rounded-lg bg-black/40 border border-white/10 text-sm hover:border-amber-400 hover:text-amber-400 transition-colors">30 Days</button>
-                    <button onClick={() => setDatePreset(90)} className="whitespace-nowrap px-4 py-2 rounded-lg bg-black/40 border border-white/10 text-sm hover:border-amber-400 hover:text-amber-400 transition-colors">90 Days</button>
-                    <button onClick={() => { setReportStartDate(""); setReportEndDate(""); }} className="whitespace-nowrap px-4 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm hover:bg-red-500/20 transition-colors text-center">Reset</button>
+                <div className="bg-surface-container-lowest p-6 rounded-xl soft-elevation border border-outline-variant/10 flex flex-col lg:flex-row gap-6 items-center justify-between">
+                  <div className="flex gap-2 w-full lg:w-auto overflow-x-auto pb-2 lg:pb-0 scrollbar-hide">
+                    {[7, 15, 30, 90].map(days => (
+                      <button key={days} onClick={() => setDatePreset(days)} className="whitespace-nowrap px-4 py-2 rounded-lg bg-surface-container-low border border-outline-variant/20 text-xs font-bold text-on-surface-variant hover:border-primary hover:text-primary transition-all active:scale-95">{days} Days</button>
+                    ))}
+                    <button onClick={() => { setReportStartDate(""); setReportEndDate(""); }} className="whitespace-nowrap px-4 py-2 rounded-lg bg-error/5 border border-error/20 text-error text-xs font-bold hover:bg-error/10 transition-all active:scale-95">Reset</button>
                   </div>
 
-                  <div className="flex items-center gap-3 w-full md:w-auto">
-                    <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 focus-within:border-amber-400 transition-all">
-                      <Calendar size={16} className="text-stone-500" />
+                  <div className="flex flex-col sm:flex-row items-center gap-4 w-full lg:w-auto">
+                    <div className="flex items-center gap-3 bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 focus-within:border-primary transition-all w-full sm:w-auto">
+                      <Calendar size={16} className="text-on-surface-variant" />
                       <input 
                         type="date" 
                         value={reportStartDate} 
                         onChange={e => setReportStartDate(e.target.value)}
-                        className="bg-transparent border-none text-sm text-stone-200 outline-none w-32 [color-scheme:dark]"
+                        className="bg-transparent border-none text-xs font-bold text-on-surface outline-none w-full sm:w-32"
                       />
                     </div>
-                    <span className="text-stone-500 text-sm">to</span>
-                    <div className="flex items-center gap-2 bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 focus-within:border-amber-400 transition-all">
-                      <Calendar size={16} className="text-stone-500" />
+                    <span className="text-on-surface-variant text-[10px] font-bold uppercase tracking-widest px-2">to</span>
+                    <div className="flex items-center gap-3 bg-surface-container-low border border-outline-variant/20 rounded-lg px-4 py-2 focus-within:border-primary transition-all w-full sm:w-auto">
+                      <Calendar size={16} className="text-on-surface-variant" />
                       <input 
                         type="date" 
                         value={reportEndDate} 
                         onChange={e => setReportEndDate(e.target.value)}
-                        className="bg-transparent border-none text-sm text-stone-200 outline-none w-32 [color-scheme:dark]"
+                        className="bg-transparent border-none text-xs font-bold text-on-surface outline-none w-full sm:w-32"
                       />
                     </div>
                   </div>
@@ -870,64 +1026,91 @@ export default function Dashboard() {
 
                 {/* Primary Metrics */}
                 <div className="grid gap-6 sm:grid-cols-2">
-                  <div className="rounded-[1.5rem] border border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-transparent p-6 shadow-xl relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 transform translate-x-4 -translate-y-4 group-hover:scale-110 transition-transform">
-                      <BarChart size={100} />
+                  <div className="bg-gradient-to-br from-primary to-primary-container p-8 rounded-2xl soft-elevation relative overflow-hidden group shadow-2xl shadow-primary/20">
+                    <div className="absolute -top-6 -right-6 p-4 opacity-5 transform group-hover:scale-110 transition-transform text-white">
+                      <BarChart size={180} />
                     </div>
-                    <p className="text-sm font-medium text-amber-300 mb-2 uppercase tracking-wider relative z-10">Period Revenue</p>
-                    {reports ? (
-                      <p className="text-4xl font-bold text-white tracking-tight relative z-10">Rs. {reports.filtered.totalRevenue.toFixed(2)}</p>
-                    ) : (
-                      <div className="h-10 w-48 bg-white/10 rounded animate-pulse relative z-10"></div>
-                    )}
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Clock size={14} className="text-white/60" />
+                        <p className="text-[10px] font-bold text-white/60 uppercase tracking-widest">Period Revenue</p>
+                      </div>
+                      {reports ? (
+                        <p className="text-4xl font-black text-white tracking-tighter font-headline">Rs. {reports.filtered.totalRevenue.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                      ) : (
+                        <div className="h-10 w-48 bg-white/10 rounded animate-pulse"></div>
+                      )}
+                    </div>
                   </div>
                   
-                  <div className="rounded-[1.5rem] border border-white/5 bg-white/5 p-6 shadow-xl relative overflow-hidden">
-                    <p className="text-sm font-medium text-stone-400 mb-2 uppercase tracking-wider">Overall All-Time</p>
-                    {reports ? (
-                      <p className="text-4xl font-bold text-stone-300 tracking-tight">Rs. {reports.overallRevenue.toFixed(2)}</p>
-                    ) : (
-                      <div className="h-10 w-48 bg-white/10 rounded animate-pulse"></div>
-                    )}
+                  <div className="bg-surface-container-lowest p-8 rounded-2xl soft-elevation border border-outline-variant/10 relative overflow-hidden group">
+                    <div className="absolute -top-6 -right-6 p-4 opacity-5 transform group-hover:scale-110 transition-transform text-primary">
+                      <BarChart size={180} />
+                    </div>
+                    <div className="relative z-10">
+                      <div className="flex items-center gap-2 mb-2">
+                        <History size={14} className="text-on-surface-variant/40" />
+                        <p className="text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest">Overall All-Time</p>
+                      </div>
+                      {reports ? (
+                        <p className="text-4xl font-black text-on-surface tracking-tighter font-headline">Rs. {reports.overallRevenue.toLocaleString(undefined, {minimumFractionDigits: 2})}</p>
+                      ) : (
+                        <div className="h-10 w-48 bg-surface-container-low rounded animate-pulse"></div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
                 {/* Secondary Stats */}
                 <div className="grid gap-6 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-6">
-                    <p className="text-xs font-medium text-stone-400 mb-1 uppercase tracking-wider">Filtered Bills</p>
-                    {reports ? <p className="text-2xl font-semibold text-white">{reports.filtered.totalVisits}</p> : <div className="h-8 w-12 bg-white/10 rounded animate-pulse"></div>}
-                  </div>
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-6">
-                    <p className="text-xs font-medium text-stone-400 mb-1 uppercase tracking-wider">Active Customers</p>
-                    {reports ? <p className="text-2xl font-semibold text-white">{reports.filtered.totalCustomers}</p> : <div className="h-8 w-12 bg-white/10 rounded animate-pulse"></div>}
-                  </div>
-                  <div className="rounded-2xl border border-white/5 bg-white/[0.02] p-6">
-                    <p className="text-xs font-medium text-stone-400 mb-1 uppercase tracking-wider">Active Services</p>
-                    {reports ? <p className="text-2xl font-semibold text-white">{reports.filtered.totalServices}</p> : <div className="h-8 w-12 bg-white/10 rounded animate-pulse"></div>}
-                  </div>
+                  {[
+                    { label: "Filtered Bills", value: reports?.filtered.totalVisits, color: "text-primary" },
+                    { label: "Active Customers", value: reports?.filtered.totalCustomers, color: "text-secondary" },
+                    { label: "Active Services", value: reports?.filtered.totalServices, color: "text-tertiary-container" }
+                  ].map((stat, i) => (
+                    <div key={i} className="bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/10 soft-elevation">
+                      <p className="text-[10px] font-bold text-on-surface-variant/60 mb-2 uppercase tracking-widest">{stat.label}</p>
+                      {reports ? (
+                        <p className={`text-3xl font-black ${stat.color} font-headline`}>{stat.value}</p>
+                      ) : (
+                        <div className="h-8 w-12 bg-surface-container-low rounded animate-pulse"></div>
+                      )}
+                    </div>
+                  ))}
                 </div>
 
                 {/* Line Chart */}
-                <div className="rounded-[1.5rem] border border-white/5 bg-white/[0.02] p-6 lg:p-8 backdrop-blur-sm shadow-xl">
-                  <h3 className="text-lg font-medium text-white mb-6">Revenue Trend</h3>
-                  <div className="h-[300px] w-full">
+                <div className="bg-surface-container-lowest p-6 lg:p-10 rounded-2xl soft-elevation border border-outline-variant/10">
+                  <div className="flex items-center justify-between mb-10">
+                    <div>
+                      <h3 className="text-lg font-bold text-on-surface font-headline leading-none">Revenue Trend</h3>
+                      <p className="text-xs font-medium text-on-surface-variant mt-1">Growth analysis over the selected period</p>
+                    </div>
+                  </div>
+                  <div className="h-[350px] w-full">
                     {!reports ? (
-                      <div className="w-full h-full flex items-center justify-center text-stone-500 animate-pulse bg-white/5 rounded-xl">Graphing Data...</div>
+                      <div className="w-full h-full flex items-center justify-center text-on-surface-variant animate-pulse bg-surface-container-low rounded-xl font-bold italic">Gathering Data Matrix...</div>
                     ) : reports.filtered.chartData.length === 0 ? (
-                      <div className="w-full h-full flex items-center justify-center text-stone-500 border border-dashed border-white/10 rounded-xl">No revenue logged in this period.</div>
+                      <div className="w-full h-full flex items-center justify-center text-on-surface-variant border border-dashed border-outline-variant/30 rounded-xl font-medium">No revenue logged in this period.</div>
                     ) : (
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={reports.filtered.chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                          <XAxis dataKey="date" stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.5)', fontSize: 12}} dy={10} />
-                          <YAxis stroke="rgba(255,255,255,0.5)" tick={{fill: 'rgba(255,255,255,0.5)', fontSize: 12}} dx={-10} tickFormatter={(v) => `₹${v}`} />
+                        <LineChart data={reports.filtered.chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                          <defs>
+                            <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#610b83" stopOpacity={0.1}/>
+                              <stop offset="95%" stopColor="#610b83" stopOpacity={0}/>
+                            </linearGradient>
+                          </defs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.03)" vertical={false} />
+                          <XAxis dataKey="date" stroke="#94a3b8" tick={{fill: '#64748b', fontSize: 10, fontWeight: 700}} dy={15} axisLine={false} tickLine={false} />
+                          <YAxis stroke="#94a3b8" tick={{fill: '#64748b', fontSize: 10, fontWeight: 700}} dx={-15} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v}`} />
                           <Tooltip 
-                            contentStyle={{ backgroundColor: '#1c1917', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                            itemStyle={{ color: '#fcd34d' }}
-                            cursor={{stroke: 'rgba(255,255,255,0.1)', strokeWidth: 2}}
+                            contentStyle={{ backgroundColor: '#fff', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', padding: '12px' }}
+                            itemStyle={{ color: '#610b83', fontWeight: 800, fontSize: '14px' }}
+                            labelStyle={{ color: '#64748b', fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}
+                            cursor={{stroke: '#610b83', strokeWidth: 1, strokeDasharray: '4 4'}}
                           />
-                          <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#fcd34d" strokeWidth={3} dot={{r: 4, fill: '#1c1917', stroke: '#fcd34d', strokeWidth: 2}} activeDot={{r: 6, fill: '#fcd34d'}} />
+                          <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#610b83" strokeWidth={4} dot={{r: 4, fill: '#fff', stroke: '#610b83', strokeWidth: 3}} activeDot={{r: 7, fill: '#610b83', stroke: '#fff', strokeWidth: 3}} animationDuration={1500} />
                         </LineChart>
                       </ResponsiveContainer>
                     )}
@@ -936,22 +1119,21 @@ export default function Dashboard() {
 
                 {/* Payment Breakdown Matrix */}
                 <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                  <div className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-5">
-                    <p className="text-xs font-semibold text-emerald-400 mb-2 uppercase tracking-wide">Cash Collections</p>
-                    {reports ? <p className="text-2xl font-bold text-white">Rs. {reports.filtered.breakdown.cash.toFixed(2)}</p> : <div className="h-8 w-20 bg-white/10 rounded animate-pulse"></div>}
-                  </div>
-                  <div className="rounded-xl border border-sky-500/20 bg-sky-500/5 p-5">
-                    <p className="text-xs font-semibold text-sky-400 mb-2 uppercase tracking-wide">GPay Collection</p>
-                    {reports ? <p className="text-2xl font-bold text-white">Rs. {reports.filtered.breakdown.gpay.toFixed(2)}</p> : <div className="h-8 w-20 bg-white/10 rounded animate-pulse"></div>}
-                  </div>
-                  <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/5 p-5">
-                    <p className="text-xs font-semibold text-indigo-400 mb-2 uppercase tracking-wide">PhonePe</p>
-                    {reports ? <p className="text-2xl font-bold text-white">Rs. {reports.filtered.breakdown.phonepe.toFixed(2)}</p> : <div className="h-8 w-20 bg-white/10 rounded animate-pulse"></div>}
-                  </div>
-                  <div className="rounded-xl border border-stone-500/30 bg-stone-500/10 p-5">
-                    <p className="text-xs font-semibold text-stone-400 mb-2 uppercase tracking-wide">Card Payments</p>
-                    {reports ? <p className="text-2xl font-bold text-white">Rs. {reports.filtered.breakdown.card.toFixed(2)}</p> : <div className="h-8 w-20 bg-white/10 rounded animate-pulse"></div>}
-                  </div>
+                  {[
+                    { label: "Cash Collections", key: "cash", color: "bg-emerald-50 border-emerald-100 text-emerald-700" },
+                    { label: "GPay Collection", key: "gpay", color: "bg-sky-50 border-sky-100 text-sky-700" },
+                    { label: "PhonePe", key: "phonepe", color: "bg-indigo-50 border-indigo-100 text-indigo-700" },
+                    { label: "Card Payments", key: "card", color: "bg-slate-50 border-slate-200 text-slate-700" }
+                  ].map((item, i) => (
+                    <div key={i} className={`rounded-2xl border p-6 soft-elevation ${item.color}`}>
+                      <p className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-2">{item.label}</p>
+                      {reports ? (
+                        <p className="text-2xl font-black font-headline">Rs. {reports.filtered.breakdown[item.key as keyof typeof reports.filtered.breakdown].toLocaleString()}</p>
+                      ) : (
+                        <div className="h-8 w-24 bg-black/5 rounded animate-pulse"></div>
+                      )}
+                    </div>
+                  ))}
                 </div>
 
               </div>

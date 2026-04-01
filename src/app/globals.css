@@ -1,26 +1,66 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: "Segoe UI", "Aptos", "Helvetica Neue", Arial, sans-serif;
-  --font-mono: "Cascadia Code", "Consolas", "SFMono-Regular", monospace;
+  --color-primary: #42005c;
+  --color-primary-container: #610b83;
+  --color-on-primary-container: #d785f8;
+  --color-primary-fixed: #f8d8ff;
+  --color-primary-fixed-dim: #ebb2ff;
+  --color-on-primary-fixed: #320047;
+  --color-on-primary-fixed-variant: #6e1e8f;
+  
+  --color-secondary: #73527e;
+  --color-secondary-container: #f2cafd;
+  --color-on-secondary-container: #72517d;
+  --color-secondary-fixed: #f8d8ff;
+  --color-secondary-fixed-dim: #e1b9ec;
+  --color-on-secondary-fixed: #2b0f37;
+  --color-on-secondary-fixed-variant: #5a3b65;
+
+  --color-tertiary: #342300;
+  --color-tertiary-container: #4f3700;
+  --color-on-tertiary-container: #c4a061;
+  --color-tertiary-fixed: #ffdea6;
+  --color-tertiary-fixed-dim: #e7c17e;
+  --color-on-tertiary-fixed: #271900;
+  --color-on-tertiary-fixed-variant: #5c420a;
+
+  --color-error: #ba1a1a;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+
+  --color-surface: #f8f9fa;
+  --color-surface-dim: #d9dadb;
+  --color-surface-bright: #f8f9fa;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f3f4f5;
+  --color-surface-container: #edeeef;
+  --color-surface-container-high: #e7e8e9;
+  --color-surface-container-highest: #e1e3e4;
+  --color-surface-variant: #e1e3e4;
+  
+  --color-on-surface: #191c1d;
+  --color-on-surface-variant: #4e4350;
+  
+  --color-outline: #807381;
+  --color-outline-variant: #d1c2d2;
+
+  --font-headline: "Manrope", sans-serif;
+  --font-body: "Inter", sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer utilities {
+  .soft-elevation {
+    box-shadow: 0 20px 40px -10px rgba(97, 11, 131, 0.08);
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans);
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  font-family: var(--font-body);
+}
+
+h1, h2, h3, h4, h5, h6, .font-headline {
+  font-family: var(--font-headline);
 }
