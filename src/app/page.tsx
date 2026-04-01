@@ -52,7 +52,7 @@ export default function Home() {
         <section className="flex flex-col justify-between gap-10">
           <div className="space-y-5">
             <p className="text-sm uppercase tracking-[0.35em] text-amber-300">
-              Salon SaaS
+              Nithal, Manage your Salon in style!
             </p>
             <h1 className="max-w-xl text-5xl font-semibold leading-tight">
               Keep bookings, customers, and staff in one place.
