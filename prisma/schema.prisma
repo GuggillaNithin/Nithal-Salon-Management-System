@@ -18,7 +18,8 @@ model Tenant {
   services     Service[]
   appointments Appointment[]
   visits       Visit[]
-  staffs       Staff[]
+  staffs        Staff[]
+  attendances   Attendance[]
 }
 
 model User {
@@ -124,4 +125,21 @@ model Staff {
 
   tenant Tenant  @relation(fields: [tenantId], references: [id])
   visits Visit[]
+  attendances Attendance[]
+}
+
+model Attendance {
+  id         String   @id @default(uuid())
+  date       DateTime @db.Date
+  loginTime  String?  // Time like "09:00"
+  logoutTime String?  // Time like "18:00"
+  totalHours Float?
+  staffId    String
+  tenantId   String
+  createdAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  staff  Staff  @relation(fields: [staffId], references: [id])
+
+  @@unique([staffId, date]) 
 }

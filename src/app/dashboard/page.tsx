@@ -27,6 +27,7 @@ type Reports = {
     totalVisits: number;
   }
 };
+type Attendance = { id: string; date: string; loginTime: string | null; logoutTime: string | null; totalHours: number | null; staffId: string; staff: Staff; };
 
 const fetcher = (url: string) => fetch(url).then(async (res) => {
   if (!res.ok) {
@@ -42,7 +43,7 @@ export default function Dashboard() {
   }});
   const { showToast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<"customers" | "services" | "visits" | "staff" | "reports">("customers");
+  const [activeTab, setActiveTab] = useState<"customers" | "services" | "visits" | "staff" | "reports" | "attendance">("customers");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // SWR queries
@@ -57,6 +58,21 @@ export default function Dashboard() {
   
   const reportQuery = `startDate=${reportStartDate}&endDate=${reportEndDate}`;
   const { data: reports, mutate: mutateReports } = useSWR<Reports>(`/api/reports?${reportQuery}`, fetcher);
+
+  // Attendance filter
+  const [attendanceStartDate, setAttendanceStartDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1)); // Monday
+    return d.toISOString().split('T')[0];
+  });
+  const [attendanceEndDate, setAttendanceEndDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - d.getDay() + 7); // Sunday
+    return d.toISOString().split('T')[0];
+  });
+
+  const attendanceQuery = `startDate=${attendanceStartDate}&endDate=${attendanceEndDate}`;
+  const { data: attendances, mutate: mutateAttendance } = useSWR<Attendance[]>(`/api/attendance?${attendanceQuery}`, fetcher);
 
   // Customer forms
   const [name, setName] = useState("");
@@ -99,6 +115,12 @@ export default function Dashboard() {
 
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState<{ [key: string]: boolean }>({});
+
+  // Attendance Form
+  const [attStaffId, setAttStaffId] = useState("");
+  const [attDate, setAttDate] = useState(new Date().toISOString().split('T')[0]);
+  const [attLogin, setAttLogin] = useState("");
+  const [attLogout, setAttLogout] = useState("");
 
   const setLoader = (key: string, value: boolean) => {
     setIsLoading(prev => ({ ...prev, [key]: value }));
@@ -226,6 +248,51 @@ export default function Dashboard() {
     }
   }
 
+  async function addAttendance() {
+    if (isLoading['addAttendance']) return;
+    if (!attStaffId || !attDate) {
+      showToast("Error", "Staff and date are required", "error");
+      return;
+    }
+    try {
+      setLoader('addAttendance', true);
+      setError("");
+      const res = await fetch("/api/attendance", { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ 
+          staffId: attStaffId, 
+          date: attDate, 
+          loginTime: attLogin, 
+          logoutTime: attLogout 
+        }) 
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed to save attendance");
+      setAttLogin(""); setAttLogout(""); mutateAttendance();
+      showToast("Saved", "Attendance record updated", "success");
+    } catch (err: any) { 
+      setError(err.message); 
+      showToast("Error", err.message, "error");
+    } finally {
+      setLoader('addAttendance', false);
+    }
+  }
+
+  const getWeeklyStats = () => {
+    if (!attendances || !employees) return [];
+    
+    return employees.map(emp => {
+      const empAttendances = attendances.filter(a => a.staffId === emp.id);
+      const totalHours = empAttendances.reduce((acc, curr) => acc + (curr.totalHours || 0), 0);
+      const daysWorked = empAttendances.filter(a => a.loginTime).length;
+      return {
+        ...emp,
+        totalHours: Number(totalHours.toFixed(2)),
+        daysWorked
+      };
+    });
+  };
+
   // POS Visit specific operations
   function addServiceToVisit(service: Service) {
     if (!selectedServices.find(s => s.id === service.id)) {
@@ -341,10 +408,11 @@ export default function Dashboard() {
     { id: "services", label: "Services", icon: Scissors },
     { id: "visits", label: "Point of Sale", icon: BookCheck },
     { id: "staff", label: "Employees", icon: Briefcase },
+    { id: "attendance", label: "Attendance", icon: Clock },
     { id: "reports", label: "Reports", icon: BarChart },
   ] as const;
 
-  const handleTabChange = (tabId: "customers" | "services" | "visits" | "staff" | "reports") => {
+  const handleTabChange = (tabId: "customers" | "services" | "visits" | "staff" | "reports" | "attendance") => {
     setActiveTab(tabId);
     setIsSidebarOpen(false);
   };
@@ -432,6 +500,7 @@ export default function Dashboard() {
                   activeTab === 'services' ? "Manage your service catalog and prices" :
                   activeTab === 'visits' ? "Process checkouts and manage point of sale" :
                   activeTab === 'staff' ? "Manage staff members and their roles" :
+                  activeTab === 'attendance' ? "Track employee work hours and attendance" :
                   "View business analytics and performance"
                 }</p>
               </div>
@@ -985,6 +1054,185 @@ export default function Dashboard() {
                       ))}
                     </div>
                   )}
+                </div>
+              </div>
+            )}
+            
+            {/* Attendance View */}
+            {activeTab === "attendance" && (
+              <div className="space-y-8 animate-in fade-in duration-500">
+                <div className="grid gap-8 lg:grid-cols-[1fr_2fr]">
+                  {/* Attendance Form */}
+                  <div className="bg-surface-container-lowest p-6 lg:p-8 rounded-xl soft-elevation border border-outline-variant/10">
+                    <div className="flex items-center gap-2 mb-6">
+                      <Clock className="text-primary-container" size={24} />
+                      <h3 className="text-lg font-bold text-on-surface font-headline">Log Attendance</h3>
+                    </div>
+                    <div className="space-y-6">
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Employee</label>
+                        <select 
+                          className="w-full border-0 border-b-2 border-outline-variant/20 bg-transparent py-2 px-0 focus:ring-0 focus:border-primary transition-all text-on-surface"
+                          value={attStaffId} 
+                          onChange={(e) => setAttStaffId(e.target.value)}
+                        >
+                          <option value="">Select Employee</option>
+                          {employees?.map((emp) => (
+                            <option key={emp.id} value={emp.id}>{emp.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Date</label>
+                        <input 
+                          type="date"
+                          className="w-full border-0 border-b-2 border-outline-variant/20 bg-transparent py-2 px-0 focus:ring-0 focus:border-primary transition-all text-on-surface"
+                          value={attDate}
+                          onChange={(e) => setAttDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Login Time</label>
+                          <input 
+                            type="time"
+                            className="w-full border-0 border-b-2 border-outline-variant/20 bg-transparent py-2 px-0 focus:ring-0 focus:border-primary transition-all text-on-surface"
+                            value={attLogin}
+                            onChange={(e) => setAttLogin(e.target.value)}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Logout Time</label>
+                          <input 
+                            type="time"
+                            className="w-full border-0 border-b-2 border-outline-variant/20 bg-transparent py-2 px-0 focus:ring-0 focus:border-primary transition-all text-on-surface"
+                            value={attLogout}
+                            onChange={(e) => setAttLogout(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      <button 
+                        onClick={addAttendance} 
+                        disabled={!attStaffId || !attDate || isLoading['addAttendance']} 
+                        className="w-full px-8 py-3 bg-gradient-to-br from-primary to-primary-container text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                      >
+                        {isLoading['addAttendance'] && <Loader2 className="h-4 w-4 animate-spin" />}
+                        {isLoading['addAttendance'] ? "Saving..." : "Save Entry"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Weekly Summary */}
+                  <div className="bg-surface-container-lowest p-6 lg:p-8 rounded-xl soft-elevation border border-outline-variant/10">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-2">
+                        <BarChart className="text-primary-container" size={24} />
+                        <h3 className="text-lg font-bold text-on-surface font-headline">Weekly Work Summary</h3>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar size={16} className="text-on-surface-variant" />
+                        <input 
+                          type="date"
+                          className="bg-transparent border border-outline-variant/20 rounded-lg px-3 py-1.5 text-xs font-bold text-on-surface outline-none"
+                          value={attendanceStartDate}
+                          onChange={(e) => {
+                            const d = new Date(e.target.value);
+                            const start = new Date(d);
+                            start.setDate(d.getDate() - d.getDay() + (d.getDay() === 0 ? -6 : 1));
+                            const end = new Date(start);
+                            end.setDate(start.getDate() + 6);
+                            setAttendanceStartDate(start.toISOString().split('T')[0]);
+                            setAttendanceEndDate(end.toISOString().split('T')[0]);
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse">
+                        <thead>
+                          <tr className="border-b border-outline-variant/20">
+                            <th className="pb-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Employee</th>
+                            <th className="pb-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest text-center">Days Worked</th>
+                            <th className="pb-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest text-right">Total Hours</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-outline-variant/10">
+                          {getWeeklyStats().map((stat) => (
+                            <tr key={stat.id} className="group hover:bg-surface-container-low transition-colors">
+                              <td className="py-4">
+                                <p className="font-bold text-on-surface">{stat.name}</p>
+                                <p className="text-[10px] text-on-surface-variant uppercase font-medium">{stat.gender}</p>
+                              </td>
+                              <td className="py-4 text-center">
+                                <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-secondary-container text-on-secondary-container font-bold text-xs">
+                                  {stat.daysWorked}
+                                </span>
+                              </td>
+                              <td className="py-4 text-right">
+                                <p className="text-lg font-black text-primary font-headline">{stat.totalHours} hrs</p>
+                              </td>
+                            </tr>
+                          ))}
+                          {getWeeklyStats().length === 0 && (
+                            <tr>
+                              <td colSpan={3} className="py-10 text-center text-on-surface-variant font-medium italic">
+                                No attendance data for this week.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Raw Log Table */}
+                <div className="bg-surface-container-lowest p-6 lg:p-8 rounded-xl soft-elevation border border-outline-variant/10">
+                  <div className="flex items-center gap-2 mb-6">
+                    <History className="text-primary-container" size={24} />
+                    <h3 className="text-lg font-bold text-on-surface font-headline">Recent Logs</h3>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-outline-variant/20">
+                          <th className="pb-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Date</th>
+                          <th className="pb-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">Employee</th>
+                          <th className="pb-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest text-center">Login</th>
+                          <th className="pb-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest text-center">Logout</th>
+                          <th className="pb-4 text-[10px] font-bold text-on-surface-variant uppercase tracking-widest text-right">Hours</th>
+                          <th className="pb-4"></th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-outline-variant/10">
+                        {attendances?.map((log) => (
+                          <tr key={log.id} className="group hover:bg-surface-container-low transition-colors">
+                            <td className="py-4 text-sm font-bold text-on-surface">
+                              {new Date(log.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
+                            </td>
+                            <td className="py-4">
+                              <p className="font-bold text-on-surface text-sm">{log.staff.name}</p>
+                            </td>
+                            <td className="py-4 text-center text-sm font-medium text-on-surface-variant">{log.loginTime || "--:--"}</td>
+                            <td className="py-4 text-center text-sm font-medium text-on-surface-variant">{log.logoutTime || "--:--"}</td>
+                            <td className="py-4 text-right">
+                              <span className="font-bold text-on-surface">{log.totalHours || 0} hrs</span>
+                            </td>
+                            <td className="py-4 text-right">
+                              <button 
+                                onClick={() => softDelete(log.id, 'attendance', mutateAttendance)}
+                                disabled={isLoading[`delete-${log.id}`]}
+                                className="text-on-surface-variant hover:text-error opacity-0 group-hover:opacity-100 transition-opacity p-2"
+                              >
+                                {isLoading[`delete-${log.id}`] ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 size={16} />}
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
             )}
