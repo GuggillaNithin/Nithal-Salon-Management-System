@@ -5,7 +5,10 @@ import { signOut, useSession } from "next-auth/react";
 import { useToast } from "@/components/ui/toast-provider";
 import useSWR from "swr";
 import { Menu, X, Users, Scissors, BookCheck, LogOut, Briefcase, BarChart, Search, Trash2, Edit, Calendar, History, Clock, Loader2 } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart as RechartsBarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { DonutChart } from "@/components/ui/donut-chart";
+import { motion, AnimatePresence } from "framer-motion";
+import { PaymentChartWidget } from "@/components/ui/payment-chart";
 
 // Types
 type Customer = { id: string; name: string; phone: string; };
@@ -22,6 +25,7 @@ type Reports = {
     totalRevenue: number;
     breakdown: { cash: number; gpay: number; phonepe: number; card: number; };
     chartData: { date: string; revenue: number }[];
+    staffRevenue: { label: string; value: number; color: string }[];
     totalCustomers: number;
     totalServices: number;
     totalVisits: number;
@@ -58,6 +62,8 @@ export default function Dashboard() {
   
   const reportQuery = `startDate=${reportStartDate}&endDate=${reportEndDate}`;
   const { data: reports, mutate: mutateReports } = useSWR<Reports>(`/api/reports?${reportQuery}`, fetcher);
+
+  const [hoveredStaff, setHoveredStaff] = useState<string | null>(null);
 
   // Attendance filter
   const [attendanceStartDate, setAttendanceStartDate] = useState<string>(() => {
@@ -1327,40 +1333,130 @@ export default function Dashboard() {
                   ))}
                 </div>
 
-                {/* Line Chart */}
-                <div className="bg-surface-container-lowest p-6 lg:p-10 rounded-2xl soft-elevation border border-outline-variant/10">
-                  <div className="flex items-center justify-between mb-10">
-                    <div>
-                      <h3 className="text-lg font-bold text-on-surface font-headline leading-none">Revenue Trend</h3>
-                      <p className="text-xs font-medium text-on-surface-variant mt-1">Growth analysis over the selected period</p>
+                {/* Charts Grid */}
+                <div className="grid lg:grid-cols-4 gap-8">
+                  {/* Bar Chart */}
+                  <div className="lg:col-span-2 bg-surface-container-lowest p-6 lg:p-8 rounded-2xl soft-elevation border border-outline-variant/10">
+                    <div className="flex items-center justify-between mb-10">
+                      <div>
+                        <h3 className="text-lg font-bold text-on-surface font-headline leading-none">Revenue Trend</h3>
+                        <p className="text-xs font-medium text-on-surface-variant mt-1">Growth analysis over the selected period</p>
+                      </div>
+                    </div>
+                    <div className="h-[300px] w-full">
+                      {!reports ? (
+                        <div className="w-full h-full flex items-center justify-center text-on-surface-variant animate-pulse bg-surface-container-low rounded-xl font-bold italic">Gathering Data Matrix...</div>
+                      ) : reports.filtered.chartData.length === 0 ? (
+                        <div className="w-full h-full flex items-center justify-center text-on-surface-variant border border-dashed border-outline-variant/30 rounded-xl font-medium">No revenue logged in this period.</div>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RechartsBarChart data={reports.filtered.chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                            <defs>
+                              <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#610b83" stopOpacity={0.8}/>
+                                <stop offset="95%" stopColor="#610b83" stopOpacity={0.2}/>
+                              </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.03)" vertical={false} />
+                            <XAxis dataKey="date" stroke="#94a3b8" tick={{fill: '#64748b', fontSize: 10, fontWeight: 700}} dy={15} axisLine={false} tickLine={false} />
+                            <YAxis stroke="#94a3b8" tick={{fill: '#64748b', fontSize: 10, fontWeight: 700}} dx={-15} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v}`} />
+                            <Tooltip 
+                              contentStyle={{ backgroundColor: '#fff', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', padding: '12px' }}
+                              itemStyle={{ color: '#610b83', fontWeight: 800, fontSize: '14px' }}
+                              labelStyle={{ color: '#64748b', fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}
+                              cursor={{fill: 'rgba(97, 11, 131, 0.05)'}}
+                            />
+                            <Bar dataKey="revenue" name="Revenue" fill="url(#colorRev)" radius={[4, 4, 0, 0]} animationDuration={1500} />
+                          </RechartsBarChart>
+                        </ResponsiveContainer>
+                      )}
                     </div>
                   </div>
-                  <div className="h-[350px] w-full">
+
+                  {/* Donut Chart */}
+                  <div className="lg:col-span-1 bg-surface-container-lowest p-6 lg:p-8 rounded-2xl soft-elevation border border-outline-variant/10 flex flex-col items-center">
+                    <div className="w-full flex items-center justify-between mb-8">
+                      <div>
+                        <h3 className="text-lg font-bold text-on-surface font-headline leading-none">Staff Revenue</h3>
+                        <p className="text-xs font-medium text-on-surface-variant mt-1">Generated by employee</p>
+                      </div>
+                    </div>
+                    
                     {!reports ? (
-                      <div className="w-full h-full flex items-center justify-center text-on-surface-variant animate-pulse bg-surface-container-low rounded-xl font-bold italic">Gathering Data Matrix...</div>
-                    ) : reports.filtered.chartData.length === 0 ? (
-                      <div className="w-full h-full flex items-center justify-center text-on-surface-variant border border-dashed border-outline-variant/30 rounded-xl font-medium">No revenue logged in this period.</div>
+                      <div className="w-full h-[250px] flex items-center justify-center text-on-surface-variant animate-pulse bg-surface-container-low rounded-xl font-bold italic">Loading...</div>
+                    ) : !reports.filtered.staffRevenue || reports.filtered.staffRevenue.length === 0 ? (
+                      <div className="w-full h-[250px] flex items-center justify-center text-on-surface-variant border border-dashed border-outline-variant/30 rounded-xl font-medium">No assigned staff revenue</div>
                     ) : (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={reports.filtered.chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                          <defs>
-                            <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#610b83" stopOpacity={0.1}/>
-                              <stop offset="95%" stopColor="#610b83" stopOpacity={0}/>
-                            </linearGradient>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" stroke="rgba(0,0,0,0.03)" vertical={false} />
-                          <XAxis dataKey="date" stroke="#94a3b8" tick={{fill: '#64748b', fontSize: 10, fontWeight: 700}} dy={15} axisLine={false} tickLine={false} />
-                          <YAxis stroke="#94a3b8" tick={{fill: '#64748b', fontSize: 10, fontWeight: 700}} dx={-15} axisLine={false} tickLine={false} tickFormatter={(v) => `₹${v}`} />
-                          <Tooltip 
-                            contentStyle={{ backgroundColor: '#fff', border: '1px solid rgba(0,0,0,0.05)', borderRadius: '16px', boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)', padding: '12px' }}
-                            itemStyle={{ color: '#610b83', fontWeight: 800, fontSize: '14px' }}
-                            labelStyle={{ color: '#64748b', fontSize: '10px', textTransform: 'uppercase', fontWeight: 700, marginBottom: '4px' }}
-                            cursor={{stroke: '#610b83', strokeWidth: 1, strokeDasharray: '4 4'}}
-                          />
-                          <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#610b83" strokeWidth={4} dot={{r: 4, fill: '#fff', stroke: '#610b83', strokeWidth: 3}} activeDot={{r: 7, fill: '#610b83', stroke: '#fff', strokeWidth: 3}} animationDuration={1500} />
-                        </LineChart>
-                      </ResponsiveContainer>
+                      <div className="flex flex-col items-center w-full">
+                        <DonutChart
+                          data={reports.filtered.staffRevenue}
+                          size={180}
+                          strokeWidth={20}
+                          animationDuration={1.2}
+                          animationDelayPerSegment={0.05}
+                          highlightOnHover={true}
+                          onSegmentHover={(segment) => setHoveredStaff(segment?.label || null)}
+                          centerContent={
+                            <AnimatePresence mode="wait">
+                              <motion.div
+                                key={hoveredStaff || "total"}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                transition={{ duration: 0.2 }}
+                                className="flex flex-col items-center justify-center text-center"
+                              >
+                                <p className="text-muted-foreground text-[10px] font-bold text-on-surface-variant uppercase tracking-wider truncate max-w-[90px]">
+                                  {hoveredStaff || "Total"}
+                                </p>
+                                <p className="text-xl font-extrabold text-on-surface">
+                                  ₹{hoveredStaff 
+                                      ? reports.filtered.staffRevenue.find(s => s.label === hoveredStaff)?.value 
+                                      : reports.filtered.staffRevenue.reduce((s, a) => s + a.value, 0)}
+                                </p>
+                              </motion.div>
+                            </AnimatePresence>
+                          }
+                        />
+                        <div className="w-full mt-6 space-y-2 max-h-[120px] overflow-y-auto pr-1">
+                          {reports.filtered.staffRevenue.map((segment) => (
+                            <div key={segment.label} className="flex justify-between items-center text-sm border-b border-outline-variant/10 pb-1.5 last:border-0 hover:bg-surface-container-low transition px-2 py-1 rounded">
+                              <span className="flex items-center gap-2 font-medium text-on-surface-variant text-xs">
+                                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: segment.color }} />
+                                {segment.label}
+                              </span>
+                              <span className="font-bold text-on-surface text-xs">₹{segment.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Payment Methods Chart */}
+                  <div className="lg:col-span-1 bg-surface-container-lowest p-6 lg:p-8 rounded-2xl soft-elevation border border-outline-variant/10 flex flex-col items-center">
+                    <div className="w-full flex items-center justify-between mb-8">
+                      <div>
+                        <h3 className="text-lg font-bold text-on-surface font-headline leading-none">Payment Methods</h3>
+                        <p className="text-xs font-medium text-on-surface-variant mt-1">Revenue by type</p>
+                      </div>
+                    </div>
+                    
+                    {!reports ? (
+                      <div className="w-full h-[250px] flex items-center justify-center text-on-surface-variant animate-pulse bg-surface-container-low rounded-xl font-bold italic">Loading...</div>
+                    ) : reports.filtered.breakdown.cash + reports.filtered.breakdown.gpay + reports.filtered.breakdown.phonepe + reports.filtered.breakdown.card === 0 ? (
+                      <div className="w-full h-[250px] flex items-center justify-center text-on-surface-variant border border-dashed border-outline-variant/30 rounded-xl font-medium">No payment data</div>
+                    ) : (
+                      <div className="flex flex-col items-center w-full">
+                        <PaymentChartWidget
+                          data={[
+                            { key: 'Cash', data: reports.filtered.breakdown.cash },
+                            { key: 'GPay', data: reports.filtered.breakdown.gpay },
+                            { key: 'PhonePe', data: reports.filtered.breakdown.phonepe },
+                            { key: 'Card', data: reports.filtered.breakdown.card },
+                          ]}
+                        />
+                      </div>
                     )}
                   </div>
                 </div>

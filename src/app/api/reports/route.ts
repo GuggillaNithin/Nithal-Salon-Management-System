@@ -31,7 +31,7 @@ export async function GET(req: Request) {
       prisma.customer.count({ where: { tenantId, isDeleted: false, ...dateFilter } }),
       prisma.service.count({ where: { tenantId, isDeleted: false } }),
       prisma.visit.findMany({ where: { tenantId, isDeleted: false }, select: { finalAmount: true, totalAmount: true } }),
-      prisma.visit.findMany({ where: { tenantId, isDeleted: false, ...dateFilter }, orderBy: { createdAt: "asc" } }),
+      prisma.visit.findMany({ where: { tenantId, isDeleted: false, ...dateFilter }, orderBy: { createdAt: "asc" }, include: { staff: true } }),
     ]);
 
     // All-time un-filtered total revenue
@@ -41,6 +41,7 @@ export async function GET(req: Request) {
     let filteredRevenue = 0;
     const breakdown = { cash: 0, gpay: 0, phonepe: 0, card: 0 };
     const chartMap = new Map<string, number>();
+    const staffMap = new Map<string, number>();
 
     for (const v of filteredVisits) {
       const amount = v.finalAmount ?? v.totalAmount ?? 0;
@@ -53,9 +54,23 @@ export async function GET(req: Request) {
 
       const dateKey = v.createdAt.toISOString().split("T")[0];
       chartMap.set(dateKey, (chartMap.get(dateKey) || 0) + amount);
+
+      const staffName = (v as any).staff?.name || "Unassigned";
+      staffMap.set(staffName, (staffMap.get(staffName) || 0) + amount);
     }
 
     const chartData = Array.from(chartMap.entries()).map(([date, revenue]) => ({ date, revenue }));
+
+    const presetColors = ["hsl(214.7 95% 40%)", "hsl(142.1 76.2% 36.3%)", "hsl(47.9 95.8% 53.1%)", "hsl(262.1 83.3% 57.8%)", "hsl(0 0% 63.9%)", "hsl(340, 80%, 50%)"];
+    let colorIdx = 0;
+    const staffRevenue = Array.from(staffMap.entries())
+      .filter(([_, value]) => value > 0)
+      .sort((a, b) => b[1] - a[1]) // highest revenue first
+      .map(([label, value]) => ({
+        label,
+        value,
+        color: presetColors[colorIdx++ % presetColors.length]
+      }));
 
     return NextResponse.json({
       overallRevenue,
@@ -63,6 +78,7 @@ export async function GET(req: Request) {
         totalRevenue: filteredRevenue,
         breakdown,
         chartData,
+        staffRevenue,
         totalCustomers,
         totalServices,
         totalVisits: filteredVisits.length,
