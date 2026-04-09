@@ -122,8 +122,14 @@ export default function Dashboard() {
   const [discountValue, setDiscountValue] = useState<number | "">("");
   const [finalAmount, setFinalAmount] = useState(0);
 
+  // Service editing state
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  const [editServiceName, setEditServiceName] = useState("");
+  const [editServicePrice, setEditServicePrice] = useState<string>("");
+  const [editServiceCategoryId, setEditServiceCategoryId] = useState("");
+
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState<{ [key: string]: boolean }>({});
+  const [isLoading, setIsLoading] = useState<{ [key: string]: boolean }>({}); 
 
   // Attendance Form
   const [attStaffId, setAttStaffId] = useState("");
@@ -237,6 +243,35 @@ export default function Dashboard() {
       showToast("Error", err.message, "error");
     } finally {
       setLoader('addService', false);
+    }
+  }
+
+  function startEditService(service: Service) {
+    setEditingServiceId(service.id);
+    setEditServiceName(service.name);
+    setEditServicePrice(String(service.price));
+    setEditServiceCategoryId((service as any).categoryId || "");
+  }
+
+  async function saveEditService() {
+    if (!editingServiceId || isLoading['editService']) return;
+    try {
+      setLoader('editService', true);
+      setError("");
+      const res = await fetch(`/api/service/${editingServiceId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: editServiceName, price: Number(editServicePrice), categoryId: editServiceCategoryId || null }),
+      });
+      if (!res.ok) throw new Error((await res.json()).error ?? "Failed to update service");
+      setEditingServiceId(null);
+      mutateServices(); mutateReports();
+      showToast("Updated", "Service updated successfully", "success");
+    } catch (err: any) {
+      setError(err.message);
+      showToast("Error", err.message, "error");
+    } finally {
+      setLoader('editService', false);
     }
   }
 
@@ -449,6 +484,75 @@ export default function Dashboard() {
     <div className="flex h-screen bg-surface text-on-surface overflow-hidden font-body">
       {isSidebarOpen && (
         <div className="fixed inset-0 z-40 bg-black/60 md:hidden backdrop-blur-sm transition-opacity" onClick={() => setIsSidebarOpen(false)} />
+      )}
+
+      {/* Edit Service Modal */}
+      {editingServiceId && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" aria-modal="true">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setEditingServiceId(null)} />
+          <div className="relative z-10 w-full max-w-md bg-white rounded-2xl shadow-2xl p-6 border border-outline-variant/20 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-2">
+                <Scissors className="text-primary" size={20} />
+                <h3 className="text-base font-bold text-on-surface">Edit Service</h3>
+              </div>
+              <button onClick={() => setEditingServiceId(null)} className="text-on-surface-variant hover:text-on-surface transition p-1 rounded-lg hover:bg-surface-container">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="space-y-5">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Service Name</label>
+                <input
+                  autoFocus
+                  className="w-full border-0 border-b-2 border-outline-variant/30 bg-transparent py-2 text-on-surface font-bold focus:outline-none focus:border-primary transition-all placeholder:text-slate-300"
+                  placeholder="e.g. Skin Fade"
+                  value={editServiceName}
+                  onChange={(e) => setEditServiceName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Price (Rs.)</label>
+                <input
+                  type="number" min="0"
+                  className="w-full border-0 border-b-2 border-outline-variant/30 bg-transparent py-2 text-on-surface font-bold focus:outline-none focus:border-primary transition-all placeholder:text-slate-300"
+                  placeholder="0.00"
+                  value={editServicePrice}
+                  onChange={(e) => setEditServicePrice(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Category</label>
+                <select
+                  className="w-full border-0 border-b-2 border-outline-variant/30 bg-transparent py-2 text-on-surface font-bold focus:outline-none focus:border-primary transition-all"
+                  value={editServiceCategoryId}
+                  onChange={(e) => setEditServiceCategoryId(e.target.value)}
+                >
+                  <option value="">No Category</option>
+                  {categories?.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-8">
+              <button
+                onClick={saveEditService}
+                disabled={!editServiceName || !editServicePrice || isLoading['editService']}
+                className="flex-1 py-3 bg-gradient-to-br from-primary to-primary-container text-white font-bold rounded-xl shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:active:scale-100 transition-all flex items-center justify-center gap-2"
+              >
+                {isLoading['editService'] ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+                {isLoading['editService'] ? 'Saving...' : 'Save Changes'}
+              </button>
+              <button
+                onClick={() => setEditingServiceId(null)}
+                className="px-5 py-3 border border-outline-variant/30 text-on-surface-variant font-bold rounded-xl hover:bg-surface-container transition-all"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Sidebar */}
@@ -702,7 +806,7 @@ export default function Dashboard() {
                     <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                       {services.map((service) => (
                         <li key={service.id} className="group rounded-2xl border border-outline-variant/10 bg-surface-container-low p-5 flex flex-col justify-between transition-all hover:bg-surface-container-lowest hover:border-outline-variant/30 relative">
-                          <div className="pr-6">
+                          <div className="pr-16">
                             {service.category && (
                               <span className="inline-block bg-secondary-container text-on-secondary-container text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded mb-3">
                                 {service.category.name}
@@ -712,13 +816,21 @@ export default function Dashboard() {
                           </div>
                           <div className="text-primary font-extrabold mt-4 text-lg">Rs. {service.price.toFixed(2)}</div>
                           {isAdmin && (
-                            <button 
-                              onClick={() => softDelete(service.id, 'service', mutateServices)} 
-                              disabled={isLoading[`delete-${service.id}`]}
-                              className="absolute top-4 right-4 text-on-surface-variant opacity-0 group-hover:opacity-100 hover:text-error transition-opacity disabled:opacity-50"
-                            >
-                              {isLoading[`delete-${service.id}`] ? <Loader2 className="h-4 w-4 animate-spin" /> : <X size={16} />}
-                            </button>
+                            <div className="absolute top-4 right-4 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={() => startEditService(service)}
+                                className="text-on-surface-variant hover:text-sky-500 bg-surface rounded-md p-1.5 border border-outline-variant/20 shadow-sm transition-colors"
+                              >
+                                <Edit size={14} />
+                              </button>
+                              <button 
+                                onClick={() => softDelete(service.id, 'service', mutateServices)} 
+                                disabled={isLoading[`delete-${service.id}`]}
+                                className="text-on-surface-variant hover:text-error bg-surface rounded-md p-1.5 border border-outline-variant/20 shadow-sm transition-colors disabled:opacity-50"
+                              >
+                                {isLoading[`delete-${service.id}`] ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 size={14} />}
+                              </button>
+                            </div>
                           )}
                         </li>
                       ))}
