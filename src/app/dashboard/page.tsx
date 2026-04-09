@@ -114,7 +114,10 @@ export default function Dashboard() {
   const [visitTotal, setVisitTotal] = useState(0);
 
   // Discount Modifiers + Settings Map
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+  type PaymentSplit = { method: string; amount: number };
+  const [paymentSplits, setPaymentSplits] = useState<PaymentSplit[]>([]);
+  const [splitMethod, setSplitMethod] = useState("cash");
+  const [splitAmount, setSplitAmount] = useState<number | "">("");
   const [discountType, setDiscountType] = useState<"percentage" | "amount">("percentage");
   const [discountValue, setDiscountValue] = useState<number | "">("");
   const [finalAmount, setFinalAmount] = useState(0);
@@ -182,7 +185,7 @@ export default function Dashboard() {
       final = baseTotal - maxDv;
     }
 
-    setFinalAmount(Math.max(0, final));
+    setFinalAmount(Math.round(Math.max(0, final)));
   }, [selectedServices, discountType, discountValue]);
 
   // Actions
@@ -316,7 +319,16 @@ export default function Dashboard() {
     setVisitCustomerName(visit.customer.name);
     setVisitCustomerPhone(visit.customer.phone);
     setSelectedServices(visit.services.map(s => s.service));
-    setPaymentMethod(visit.paymentMethod || "cash");
+    
+    if (visit.paymentMethod?.startsWith('[')) {
+      try {
+        setPaymentSplits(JSON.parse(visit.paymentMethod));
+      } catch(e) {
+        setPaymentSplits([{ method: visit.paymentMethod || "cash", amount: visit.finalAmount }]);
+      }
+    } else {
+      setPaymentSplits([{ method: visit.paymentMethod || "cash", amount: visit.finalAmount }]);
+    }
     
     setDiscountType((visit.discountType as any) || "percentage");
     setDiscountValue(visit.discountValue || "");
@@ -331,7 +343,9 @@ export default function Dashboard() {
     setVisitCustomerName("");
     setVisitCustomerPhone("");
     setSelectedServices([]);
-    setPaymentMethod("cash");
+    setPaymentSplits([]);
+    setSplitMethod("cash");
+    setSplitAmount("");
     setDiscountType("percentage");
     setDiscountValue("");
     setSelectedStaffId("");
@@ -344,12 +358,20 @@ export default function Dashboard() {
     try {
       setLoader('checkout', true);
       setError("");
+      const currentSplitsAmount = paymentSplits.reduce((acc, sum) => acc + sum.amount, 0);
+      if (currentSplitsAmount !== finalAmount && finalAmount > 0) {
+        showToast("Error", `Split payments (₹${currentSplitsAmount}) must equal the exact Final Amount (₹${finalAmount}).`, "error");
+        setLoader('checkout', false);
+        return;
+      }
+
       const payload = {
         serviceIds: selectedServices.map(s => s.id),
-        paymentMethod,
+        paymentMethod: JSON.stringify(paymentSplits.length > 0 ? paymentSplits : [{ method: "cash", amount: finalAmount }]),
         discountType,
         discountValue: Number(discountValue) || 0,
-        staffId: selectedStaffId || null
+        staffId: selectedStaffId || null,
+        finalAmount
       };
 
       if (editingId) {
@@ -901,26 +923,66 @@ export default function Dashboard() {
                             onChange={(e) => setDiscountValue(e.target.value === "" ? "" : Number(e.target.value))}
                           />
                         </div>
-                        <div className="flex justify-between items-center text-sm pt-2">
-                          <span className="text-on-surface-variant font-medium">Payment Type</span>
-                          <select
-                            className="bg-surface-container border border-outline-variant/20 rounded-lg px-3 py-1.5 text-on-surface font-bold outline-none focus:border-primary transition-colors text-xs"
-                            value={paymentMethod}
-                            onChange={(e) => setPaymentMethod(e.target.value)}
-                          >
-                            <option value="cash">💵 Cash</option>
-                            <option value="gpay">📱 GPay</option>
-                            <option value="phonepe">📱 PhonePe</option>
-                            <option value="card">💳 Card</option>
-                          </select>
+                        <div className="flex flex-col gap-3 pt-6 border-t border-outline-variant/20">
+                          <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant block">Payment Splits</label>
+                          {paymentSplits.map((split, i) => (
+                            <div key={i} className="flex justify-between items-center text-sm bg-surface p-3 rounded-lg border border-outline-variant/10 shadow-sm">
+                              <span className="font-bold text-on-surface capitalize">{split.method}</span>
+                              <div className="flex items-center gap-3">
+                                <span className="font-bold text-primary">₹{split.amount}</span>
+                                <button className="text-error/80 hover:text-error hover:bg-error/10 p-1.5 rounded transition" onClick={() => setPaymentSplits(paymentSplits.filter((_, idx) => idx !== i))}><X size={14}/></button>
+                              </div>
+                            </div>
+                          ))}
+                          
+                          {paymentSplits.reduce((acc, curr) => acc + curr.amount, 0) < finalAmount && (
+                            <div className="flex gap-2 items-center mt-2">
+                              <select
+                                className="bg-surface-container border border-outline-variant/20 rounded-lg px-2 py-2 text-on-surface font-bold outline-none focus:border-primary transition-colors text-xs flex-1"
+                                value={splitMethod}
+                                onChange={(e) => setSplitMethod(e.target.value)}
+                              >
+                                <option value="cash">💵 Cash</option>
+                                <option value="gpay">📱 GPay</option>
+                                <option value="phonepe">📱 PhonePe</option>
+                                <option value="card">💳 Card</option>
+                              </select>
+                              <input 
+                                type="number" 
+                                min="0"
+                                className="w-24 rounded-lg border border-outline-variant/20 bg-surface p-2 text-sm outline-none transition focus:border-primary text-on-surface font-bold placeholder:text-slate-300"
+                                placeholder={(finalAmount - paymentSplits.reduce((acc, curr) => acc + curr.amount, 0)).toFixed(2)}
+                                value={splitAmount}
+                                onChange={(e) => setSplitAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                              />
+                              <button 
+                                onClick={() => {
+                                  if (!splitAmount || Number(splitAmount) <= 0) return;
+                                  setPaymentSplits([...paymentSplits, { method: splitMethod, amount: Number(splitAmount) }]);
+                                  setSplitAmount("");
+                                }}
+                                className="px-3 py-2 bg-primary text-white rounded-lg text-sm font-bold shadow shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all"
+                              >
+                                Add
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       <div className="flex justify-between items-end mb-8">
                         <span className="text-on-surface-variant font-bold text-sm tracking-tight">{editingId ? 'Refactored Due' : 'Final Amount'}</span>
-                        <span className="text-3xl font-extrabold text-primary tracking-tight font-headline">
-                          Rs. {finalAmount.toFixed(2)}
-                        </span>
+                        <div className="flex items-baseline justify-end gap-1 border-b-2 border-transparent hover:border-outline-variant/30 focus-within:border-primary transition-colors pb-1">
+                          <span className="text-xl font-extrabold text-primary tracking-tight font-headline">Rs.</span>
+                          <input
+                            type="number"
+                            value={finalAmount === 0 ? "" : finalAmount}
+                            onChange={(e) => setFinalAmount(Number(e.target.value))}
+                            onWheel={(e) => e.currentTarget.blur()}
+                            className="w-32 bg-transparent text-3xl font-extrabold text-primary tracking-tight font-headline outline-none text-right placeholder:text-primary/30 origin-right transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            placeholder="0"
+                          />
+                        </div>
                       </div>
 
                       <button
@@ -954,6 +1016,13 @@ export default function Dashboard() {
                       {visits.map((visit) => {
                         const dateObj = new Date(visit.createdAt);
                         const hasDiscount = visit.discountValue && visit.discountValue > 0;
+                        let displayPayment = String(visit.paymentMethod || 'cash');
+                        if (displayPayment.startsWith('[')) {
+                          try {
+                            const splits = JSON.parse(displayPayment);
+                            displayPayment = splits.map((s: any) => `${s.method} (₹${s.amount})`).join(', ');
+                          } catch(e) {}
+                        }
                         
                         return (
                           <div key={visit.id} className="group rounded-2xl border border-outline-variant/10 bg-surface-container-low p-5 transition-all hover:bg-surface-container-lowest hover:border-outline-variant/30 relative shadow-sm">
@@ -966,7 +1035,7 @@ export default function Dashboard() {
                                 <p className="text-on-surface-variant text-sm flex items-center gap-2 font-medium">
                                   {visit.customer?.phone} 
                                   <span className="text-outline-variant">•</span> 
-                                  <span className="uppercase text-primary font-bold text-xs tracking-wider">{visit.paymentMethod}</span>
+                                  <span className="uppercase text-primary font-bold text-xs tracking-wider">{displayPayment}</span>
                                   {visit.staff && (
                                     <>
                                       <span className="text-outline-variant">•</span>

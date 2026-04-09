@@ -16,7 +16,7 @@ export async function PUT(
 
     const tenantId = session.user.tenantId;
     const body = await req.json();
-    const { serviceIds, paymentMethod, discountType, discountValue, staffId } = body;
+    const { serviceIds, paymentMethod, discountType, discountValue, staffId, finalAmount: overrideFinalAmount } = body;
 
     // Verify the existing visit thoroughly matches the session tenantId before deleting its children
     const existingVisit = await prisma.visit.findFirst({
@@ -61,17 +61,18 @@ export async function PUT(
     }
 
     const totalAmount = services.reduce((sum, s) => sum + s.price, 0);
-    let finalAmount = totalAmount;
+    let calculatedFinal = totalAmount;
 
     if (discountType === "percentage") {
       const dv = Math.min(Math.max(Number(discountValue) || 0, 0), 100);
-      finalAmount = totalAmount - (totalAmount * dv) / 100;
+      calculatedFinal = totalAmount - (totalAmount * dv) / 100;
     } else if (discountType === "amount") {
       const dv = Math.min(Math.max(Number(discountValue) || 0, 0), totalAmount);
-      finalAmount = totalAmount - dv;
+      calculatedFinal = totalAmount - dv;
     }
     
-    finalAmount = Math.max(finalAmount, 0);
+    calculatedFinal = Math.max(calculatedFinal, 0);
+    const finalAmount = overrideFinalAmount !== undefined ? Number(overrideFinalAmount) : Math.round(calculatedFinal);
 
     // Delete old relations securely since we verified existingVisit ownership already
     await prisma.visitService.deleteMany({

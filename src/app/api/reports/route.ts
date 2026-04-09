@@ -47,9 +47,24 @@ export async function GET(req: Request) {
       const amount = v.finalAmount ?? v.totalAmount ?? 0;
       filteredRevenue += amount;
       
-      const method = (v.paymentMethod || "cash").toLowerCase();
-      if (breakdown.hasOwnProperty(method)) {
-        (breakdown as any)[method] += amount;
+      const rawMethod = v.paymentMethod || "cash";
+      if (rawMethod.startsWith("[")) {
+        try {
+          const splits = JSON.parse(rawMethod);
+          for (const split of splits) {
+            const method = (split.method || "cash").toLowerCase();
+            if (breakdown.hasOwnProperty(method)) {
+              (breakdown as any)[method] += split.amount;
+            }
+          }
+        } catch (e) {
+          (breakdown as any)["cash"] += amount;
+        }
+      } else {
+        const method = rawMethod.toLowerCase();
+        if (breakdown.hasOwnProperty(method)) {
+          (breakdown as any)[method] += amount;
+        }
       }
 
       const dateKey = v.createdAt.toISOString().split("T")[0];
